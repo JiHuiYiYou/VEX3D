@@ -1,0 +1,32 @@
+# 依赖
+node_modules/
+dist/
+
+# TypeScript 增量编译缓存（`npm run build` 里的 tsc -b 产生）
+tsconfig.tsbuildinfo
+
+# 官方场地 CAD 源文件（126 MB，不入库；见 README「重新生成 CAD 资产」）
+fieldcad/
+
+# 生成的资产（由 tools/extract_field.py 产出，约 20 MB）
+public/assets/
+
+# Python 管线
+tools/.venv/
+tools/__pycache__/
+tools/_cache/
+tools/shots/
+tools/_*.log
+tools/_*.json
+
+# 本机专属的 MCP 配置：里面是绝对路径（VEX 规则查询服务），
+# 换台机器就没用，所以不入库；要用的话按 README 的说明自己建一个。
+.mcp.json
+
+# 编辑器 / 系统杂项
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

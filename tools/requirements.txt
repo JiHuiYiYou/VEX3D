@@ -1,0 +1,10 @@
+# VEX3D field extraction -- Python dependencies
+#
+# Install into tools/.venv (already provisioned in this repo):
+#   python -m venv tools/.venv
+#   tools/.venv/Scripts/pip.exe install -r tools/requirements.txt
+#
+# cadquery-ocp is the OCCT 7.9 python binding; it provides the OCP module.
+# It pulls in numpy as a dependency.
+cadquery-ocp==7.9.3.1.1
+numpy>=2.0
