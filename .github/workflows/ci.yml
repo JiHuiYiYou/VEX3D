@@ -12,9 +12,9 @@ jobs:
     name: 类型检查 / 回归测试 / 构建
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           # npm test 直接用 node 跑 .ts（原生剥离类型），需要 Node 22.18+ / 24
           node-version: 24
