@@ -207,7 +207,9 @@ function MidfieldCounts() {
       <div className="panel-title" style={{ marginTop: 12 }}>
         中场机器人数量
       </div>
-      <div className="hint small">填**赛局结束时**中场的机器人数量（`&lt;SC5&gt;b` / `&lt;SC6&gt;`）。</div>
+      <div className="hint small">
+        填<b>赛局结束时</b>中场的机器人数量（<code>&lt;SC5&gt;b</code> / <code>&lt;SC6&gt;</code>）。
+      </div>
       {row('红方', 'red', counts.red)}
       {row('蓝方', 'blue', counts.blue)}
       <div className="hint small">
