@@ -20,9 +20,14 @@ export function RulesDrawer() {
           </p>
           <p>
             <b>罩住关系</b>（CAD 实测）：Cup 的<b>下半</b>罩住它<i>下面</i>那个 Pin 的<b>上半</b>；
-            Cup 的<b>上半</b>罩住它<i>上面</i>那个 Pin 的<b>下半</b>。Goal 不是 Cup，不挡分。
+            Cup 的<b>上半</b>罩住它<i>上面</i>那个 Pin 的<b>下半</b>。
             <br />
             换句话说，<b>Pin 的上半看它上面那个 Cup 的下半，Pin 的下半看它下面那个 Cup 的上半</b>。
+            <br />
+            <b>Goal 也挡分</b>：直接插在桩孔里的那个 Pin，<b>下半整个埋在桩的 socket 里 → 不计分</b>。
+          </p>
+          <p>
+            <b>拆卸</b>：得分物不能悬空 —— 拆掉一个，<b>它上面的 Pin / Cup 一并拆掉</b>。
           </p>
           <p>
             <b>摆放规则</b>：<i>Pin 只能放在 Cup 上，或直接放在 Goal 上</i>；<i>Cup 只能放在 Pin 上</i>。

@@ -141,12 +141,25 @@ export const useApp = create<AppState>((set, get) => ({
     return true
   },
 
+  /**
+   * 拆掉一件 → **它上面的所有件也一并拆掉**。
+   *
+   * 物理上就是这样：得分物不能悬空，把底下那个抽走，上面的 Cup / Pin 就都掉了。
+   * （垃圾桶删除、Delete 键都走这里。）
+   */
   removeItem: (goalId, itemId) =>
     set((s) => {
       const stack = s.stacks[goalId] ?? []
+      const idx = stack.findIndex((i) => i.id === itemId)
+      if (idx < 0) return {}
+      const kept = stack.slice(0, idx)
+      // 被拆掉的是它自己或它上面的某件 → 选中态要清掉
+      const selIdx = s.selectedItemId
+        ? stack.findIndex((i) => i.id === s.selectedItemId)
+        : -1
       return {
-        stacks: { ...s.stacks, [goalId]: stack.filter((i) => i.id !== itemId) },
-        selectedItemId: s.selectedItemId === itemId ? null : s.selectedItemId,
+        stacks: { ...s.stacks, [goalId]: kept },
+        selectedItemId: selIdx >= idx ? null : s.selectedItemId,
       }
     }),
 

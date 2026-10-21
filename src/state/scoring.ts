@@ -38,6 +38,9 @@
  *     若是**不透明(gray)** → 「被不透明杯遮挡」→ 不得分。
  *     等价的说法：Cup 的下半罩住它**下面**那个 Pin 的上半；Cup 的上半罩住它**上面**那个 Pin 的下半。
  *   · Goal 不是 Cup，**不挡分**：直接放在 Goal 上的 Pin 两半都照常计分。
+ *     （⚠️ 这一条由 `GOAL_COVERS_PIN_LOWER` 控制：设成 true 时，插在桩孔里的那个 Pin
+ *      的**下半**也算被桩挡住 → 不计分。默认 true 是用户口径；手册图 SC5-1/2 是相反的，
+ *      详见那个常量的注释。）
  *   · 摆放规则：Pin 只能放在 Cup 上，或直接放在 Goal 上；Cup 只能放在 Pin 上。
  *     所以栈必然是 Pin/Cup/Pin/Cup… 交替，第 0 件是直接嵌在 Goal 上的 Pin。
  *   · Placed 判定（<SC2>a）：直接嵌在 Goal 上的 Pin 是 placed；嵌在一个「与已 placed 的
@@ -94,6 +97,21 @@ export interface ScoringInput {
 
 const POINTS_ALLIANCE = 5
 const POINTS_YELLOW = 10
+
+/**
+ * **Goal 算不算「罩住」Pin 的下半？**
+ *
+ * 本工具目前按 **true**（用户口径）：直接插在 Goal 孔里的那个 Pin，它的**下半**被桩挡住 → 不计分。
+ *
+ * ⚠️ 但官方手册的图 SC5-1/2 是**相反**的：中间板（Toggle=蓝）里，插在桩孔里的那个黄半
+ * 明确标着 **+10**；左板（Toggle=黄）同一个件标 **+0** —— 两块板只差 Toggle 颜色，
+ * 说明那个半**照常计分**，只是看黄色归谁。`<SC3>` 原文也只提 Cup
+ * （"nested inside the transparent half of a **Cup** or is not covered by a **Cup**"），
+ * 全文没提 Goal。
+ *
+ * 要按手册口径的话，把这个常量改成 false 即可（其余逻辑不用动）。
+ */
+export const GOAL_COVERS_PIN_LOWER = true
 
 /** <SC5> 黄色 Pin 的拥有方 */
 export function yellowOwner(
@@ -187,6 +205,11 @@ export function scoreGoal(
             scored = false
             coverReason = '下半被下方 Cup 的上半（不透明/灰半）遮住 → 不计分'
           }
+        } else if (GOAL_COVERS_PIN_LOWER && i === 0) {
+          // 直接插在 Goal 孔里的那个 Pin：下半整个埋在桩的 socket 里 → 被桩挡住
+          covered = true
+          scored = false
+          coverReason = '下半插在 Goal 的孔里，被桩挡住 → 不计分'
         } else {
           scored = placed
           coverReason = '下半未被 Cup 覆盖 → 计分'

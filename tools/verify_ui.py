@@ -333,9 +333,81 @@ def main():
                 after = page.evaluate(
                     "() => Object.values(window.__vex3d.getState().stacks).flat().length"
                 )
-                deleted = after == before - 1
+                deleted = after < before
+                check(
+                    "丢进垃圾桶后该件被删除",
+                    deleted,
+                    f"{before} → {after} 件",
+                )
         check("拖到画布边缘时出现红色垃圾桶", trash_seen, str(trash_info))
-        check("丢进垃圾桶后该件被删除", deleted)
+
+        # ── 8b. 拆件连坐：拆掉一个 → 它上面的都跟着掉 ────────
+        cascade_ok = False
+        cascade_detail = ""
+        if found:
+            # 直接摆一个三层的摞：Pin → Cup → Pin
+            page.evaluate(
+                """() => {
+                  const st = window.__vex3d.getState();
+                  const id = st.selectedGoalId;
+                  const mk = (kind, halves) => ({id: 'c' + Math.random(), kind, halves});
+                  window.__vex3d.setState({ stacks: { ...st.stacks, [id]: [
+                    mk('pin', ['red', 'red']),
+                    mk('cup', ['clear', 'gray']),
+                    mk('pin', ['blue', 'blue']),
+                  ] } });
+                }"""
+            )
+            time.sleep(0.4)
+            # 拆最底下那个 → 整摞都该没
+            page.evaluate(
+                """() => {
+                  const st = window.__vex3d.getState();
+                  const id = st.selectedGoalId;
+                  const bottom = st.stacks[id][0];
+                  window.__vex3d.getState().removeItem(id, bottom.id);
+                }"""
+            )
+            time.sleep(0.3)
+            left = page.evaluate(
+                "() => Object.values(window.__vex3d.getState().stacks).flat().length"
+            )
+            cascade_ok = left == 0
+            cascade_detail = f"拆掉最底下那个 → 剩 {left} 件"
+
+            # 再摆一次，拆中间那个 → 只剩最底下那个
+            page.evaluate(
+                """() => {
+                  const st = window.__vex3d.getState();
+                  const id = st.selectedGoalId;
+                  const mk = (kind, halves) => ({id: 'c' + Math.random(), kind, halves});
+                  window.__vex3d.setState({ stacks: { ...st.stacks, [id]: [
+                    mk('pin', ['red', 'red']),
+                    mk('cup', ['clear', 'gray']),
+                    mk('pin', ['blue', 'blue']),
+                  ] } });
+                }"""
+            )
+            time.sleep(0.3)
+            page.evaluate(
+                """() => {
+                  const st = window.__vex3d.getState();
+                  const id = st.selectedGoalId;
+                  const mid = st.stacks[id][1];
+                  window.__vex3d.getState().removeItem(id, mid.id);
+                }"""
+            )
+            time.sleep(0.3)
+            rest = page.evaluate(
+                """() => {
+                  const st = window.__vex3d.getState();
+                  const id = st.selectedGoalId;
+                  return st.stacks[id].map(i => i.kind);
+                }"""
+            )
+            cascade_ok = cascade_ok and rest == ["pin"]
+            cascade_detail += f"；拆掉中间那个 → 剩 {rest}"
+        check("拆掉一个得分物 → 它上面的 Pin/Cup 一并拆掉（不能悬空）", cascade_ok, cascade_detail)
 
         # ── 9. 相机能转 ─────────────────────────────────────
         page.mouse.move(cx, cy)

@@ -69,18 +69,19 @@ console.log('\n── 场景 1：中立桩上的黄黄 Pin，Toggle 是黄色 �
   eq('但都没得分（黄色没人拥有）', r.halves.filter((h) => h.scored).length, 0)
 }
 
-console.log('\n── 场景 2：同一个 Pin，把该象限 Toggle 设成红色 → 20 分 ──')
+console.log('\n── 场景 2：同一个 Pin，把该象限 Toggle 设成红色 → 只有上半得分 10 分（下半插在桩孔里被挡住）──')
 {
   const r = run({ 'g-n1': [pin('yellow', 'yellow')] }, toggles({ top: 'red' }))
-  eq('红方 20 分（两个黄色端子各 10）', r.red, 20)
+  eq('红方 10 分（只有上半那半个黄端子）', r.red, 10)
   eq('蓝方 0 分', r.blue, 0)
+  eq('下半的理由写明被桩挡住', r.halves.some((h) => h.reason.includes('被桩挡住')), true)
 }
 
-console.log('\n── 场景 3：Toggle 设为蓝色 → 蓝方 20 分 ──')
+console.log('\n── 场景 3：Toggle 设为蓝色 → 蓝方 10 分 ──')
 {
   const r = run({ 'g-n1': [pin('yellow', 'yellow')] }, toggles({ top: 'blue' }))
   eq('红方 0 分', r.red, 0)
-  eq('蓝方 20 分', r.blue, 20)
+  eq('蓝方 10 分', r.blue, 10)
 }
 
 console.log('\n── 场景 4：Toggle 设为黄色 → 黄色 Pin 不得分（手册 <SC5>a）──')
@@ -90,33 +91,33 @@ console.log('\n── 场景 4：Toggle 设为黄色 → 黄色 Pin 不得分（
   eq('蓝方 0 分', r.blue, 0)
 }
 
-console.log('\n── 场景 5：黄色 Pin 上面盖一个「下半是灰」的 Cup → 下半得分，上半被挡 → 10 分 ──')
+console.log('\n── 场景 5：黄色 Pin 上面盖一个「下半是灰」的 Cup → 上半被灰杯挡住，下半被桩挡住 → 0 分 ──')
 {
   const r = run({ 'g-n1': [pin('yellow', 'yellow'), cup('gray', 'clear')] }, toggles({ top: 'red' }))
-  eq('红方 10 分（只有下半）', r.red, 10)
-  eq('被挡的端子不计分', r.halves.filter((h) => h.placed && !h.scored).length, 1)
+  eq('红方 0 分', r.red, 0)
+  eq('两个端子都不计分', r.halves.filter((h) => h.placed && !h.scored).length, 2)
   eq('理由写明被不透明杯遮挡', r.halves.some((h) => h.reason.includes('不透明')), true)
 }
 
-console.log('\n── 场景 6：把 Cup 翻过来（下半变透明）→ 两个端子都得分 → 20 分 ──')
+console.log('\n── 场景 6：把 Cup 翻过来（下半变透明）→ 上半在透明半里照常得分 → 10 分 ──')
 {
   const r = run({ 'g-n1': [pin('yellow', 'yellow'), cup('clear', 'gray')] }, toggles({ top: 'red' }))
-  eq('红方 20 分', r.red, 20)
-  eq('没有被挡的端子', r.halves.filter((h) => h.placed && !h.scored).length, 0)
+  eq('红方 10 分', r.red, 10)
+  eq('只有下半（被桩挡住）不计分', r.halves.filter((h) => h.placed && !h.scored).length, 1)
 }
 
 console.log('\n── 场景 7：联盟桩里的蓝蓝 Pin → 按端子自身颜色算给蓝方（桩色不改变归属）──')
 {
   const r = run({ 'g-r1': [pin('blue', 'blue')] }, toggles())
   eq('红方 0 分', r.red, 0)
-  eq('蓝方 10 分（两个端子各 5 分）', r.blue, 10)
+  eq('蓝方 5 分（只有上半那半个蓝端子）', r.blue, 5)
 }
 
-console.log('\n── 场景 8：红方桩里的红黄 Pin → 红半 5 分给红方，黄半归该象限 Toggle ──')
+console.log('\n── 场景 8：红方桩里的红黄 Pin（下半红 / 上半黄）→ 下半被桩挡住；上半黄归左象限 Toggle ──')
 {
   const r = run({ 'g-r1': [pin('red', 'yellow')] }, toggles({ left: 'blue' }))
-  eq('红方 5 分', r.red, 5)
-  eq('蓝方 10 分（黄色被左象限 Toggle 拥有）', r.blue, 10)
+  eq('红方 0 分（下半的红端子被桩挡住）', r.red, 0)
+  eq('蓝方 10 分（上半的黄端子被左象限 Toggle 拥有）', r.blue, 10)
 }
 
 console.log('\n── 场景 9：中场高桩里的黄黄 Pin，双方中场机器人都是 0 → 0 分（平局谁都不拥有）──')
@@ -126,43 +127,43 @@ console.log('\n── 场景 9：中场高桩里的黄黄 Pin，双方中场机�
   eq('蓝方 0 分', r.blue, 0)
 }
 
-console.log('\n── 场景 10：中场蓝方机器人更多 → 中场黄色 Pin 归蓝方 ──')
+console.log('\n── 场景 10：中场蓝方机器人更多 → 中场黄色 Pin 归蓝方（下半被桩挡住，只剩上半）──')
 {
   const r = run({ 'g-center': [pin('yellow', 'yellow')] }, toggles(), { red: 0, blue: 1 })
-  eq('蓝方 20 分', r.blue, 20)
+  eq('蓝方 10 分', r.blue, 10)
 }
 
 console.log('\n── 场景 11：Pin 直接压在另一个 Pin 上（中间没有 Cup）→ 不算 placed ──')
 {
   const r = run({ 'g-n1': [pin('red', 'red'), pin('red', 'red')] }, toggles())
   eq('只有最下面那个 Pin 的端子算 placed', r.halves.filter((h) => h.placed).length, 2)
-  eq('上面那个 Pin 不计分', r.halves.filter((h) => h.scored).length, 2)
+  eq('只有下面那个 Pin 的上半得分（下半被桩挡住）', r.halves.filter((h) => h.scored).length, 1)
 }
 
-console.log('\n── 场景 12：Pin → 灰杯 → Pin：中间的灰杯同时挡住上面 Pin 的下半和下面 Pin 的上半 ──')
+console.log('\n── 场景 12：Pin → 灰杯 → Pin：灰杯挡住上面 Pin 的下半、下面 Pin 的上半，加上桩挡住最底下的下半 ──')
 {
   const r = run({ 'g-n1': [pin('red', 'red'), cup('gray', 'gray'), pin('blue', 'blue')] }, toggles())
   eq('两个 Pin 的 4 个端子都 placed', r.halves.filter((h) => h.placed).length, 4)
-  eq('被灰杯挡住的 2 个端子不得分', r.halves.filter((h) => h.placed && !h.scored).length, 2)
-  eq('红方 5 分（红 Pin 的下半）', r.red, 5)
+  eq('3 个端子不得分（2 个被灰杯挡 + 1 个被桩挡）', r.blocked, 3)
+  eq('红方 0 分（红 Pin 两半都被挡）', r.red, 0)
   eq('蓝方 5 分（蓝 Pin 的上半）', r.blue, 5)
 }
 
 console.log('\n── 场景 13：Pin → 杯（下半透明/上半灰）→ Pin：下半透明 → 下面 Pin 的上半照样得分；上半灰 → 上面 Pin 的下半被挡 ──')
 {
   const r = run({ 'g-n1': [pin('red', 'red'), cup('clear', 'gray'), pin('blue', 'blue')] }, toggles())
-  eq('3 个端子得分', r.halves.filter((h) => h.scored).length, 3)
-  eq('1 个端子被灰半挡住', r.blocked, 1)
-  eq('红方 10 分（下面那个 Pin 的两半）', r.red, 10)
+  eq('2 个端子得分', r.halves.filter((h) => h.scored).length, 2)
+  eq('2 个端子被挡（1 个灰半 + 1 个桩）', r.blocked, 2)
+  eq('红方 5 分（下面那个 Pin 的上半，在透明半里）', r.red, 5)
   eq('蓝方 5 分（上面那个 Pin 只剩上半）', r.blue, 5)
 }
 
 console.log('\n── 场景 14：同一个摞把 Cup 翻过来（下半灰/上半透明）→ 挡的那一半也换了人 ──')
 {
   const r = run({ 'g-n1': [pin('red', 'red'), cup('gray', 'clear'), pin('blue', 'blue')] }, toggles())
-  eq('3 个端子得分', r.halves.filter((h) => h.scored).length, 3)
-  eq('1 个端子被灰半挡住', r.blocked, 1)
-  eq('红方 5 分（下面那个 Pin 只剩下半）', r.red, 5)
+  eq('2 个端子得分', r.halves.filter((h) => h.scored).length, 2)
+  eq('2 个端子被挡（1 个灰半 + 1 个桩）', r.blocked, 2)
+  eq('红方 0 分（红 Pin 两半都被挡）', r.red, 0)
   eq('蓝方 10 分（上面那个 Pin 的两半）', r.blue, 10)
 }
 
@@ -181,16 +182,16 @@ console.log('\n── 场景 15：五层交替摞 Pin→Cup→Pin→Cup→Pin �
     toggles(),
   )
   eq('6 个端子都 placed', r.halves.filter((h) => h.placed).length, 6)
-  eq('4 个端子得分', r.halves.filter((h) => h.scored).length, 4)
-  eq('2 个端子被挡', r.blocked, 2)
-  eq('红方 20 分（上下两个红 Pin）', r.red, 20)
+  eq('3 个端子得分', r.halves.filter((h) => h.scored).length, 3)
+  eq('3 个端子被挡（2 个灰半 + 1 个桩）', r.blocked, 3)
+  eq('红方 15 分（最底下那个红 Pin 只剩上半）', r.red, 15)
   eq('蓝方 0 分（中间蓝 Pin 两半都被挡）', r.blue, 0)
 }
 
 console.log('\n── 场景 16：黄色 Pin 放在 Cup 上（黄色归属仍按 Toggle 算）──')
 {
   const r = run({ 'g-n1': [pin('yellow', 'yellow'), cup('clear', 'gray')] }, toggles({ top: 'red' }))
-  eq('红方 20 分（两个黄半：下半没被覆盖、上半在透明半里）', r.red, 20)
+  eq('红方 10 分（只有上半那个黄半，在透明半里）', r.red, 10)
 }
 
 console.log('\n── 场景 17：Cup 直接放在 Goal 上（非法摞）→ 引擎不炸、也不计分 ──')

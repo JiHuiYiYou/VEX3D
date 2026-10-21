@@ -180,6 +180,11 @@ src/
 - `<SC5> a`：象限内的黄色 Pin 归该象限 Toggle 的颜色；Toggle 设为黄色（或没就位）则不得分。
 - `<SC5> b`：中场高桩里的黄色 Pin 归中场机器人数量多的一方，相等则都不拥有。
 - `<SG9>/<SG10>`：不能碰/取走对方联盟桩里的得分物。
+- **Goal 也挡分（本工具采用的解读）**：直接插在桩孔里的那个 Pin，**下半整个埋在 socket 里 → 不计分**。
+  由 `scoring.ts` 的 `GOAL_COVERS_PIN_LOWER` 控制（默认 `true`）。
+  ⚠️ **官方手册图 SC5-1/2 是相反的**：中间板（Toggle=蓝）里插在桩里的黄半明确标 **+10**，
+  左板（Toggle=黄）同一个件标 +0（只差 Toggle 颜色）→ 按手册这半是**计分**的；
+  `<SC3>` 原文也只提 Cup、不提 Goal。要切回手册口径把那个常量改成 `false` 即可。
 
 ### 摆放规则（用户给定口径，不是手册原文）
 
@@ -193,6 +198,14 @@ Goal ──▶ Pin ──▶ Cup ──▶ Pin ──▶ Cup …
   并弹一句中文提示（`src/ui/PlaceHint.tsx`）；拖拽时目标不高亮、幽灵染红。
 - 判定函数在 `src/state/scoring.ts` 的 `checkPlacement`（只能 type-only import，因为
   `node tools/test_scoring.ts` 直接加载那个文件）。
+
+### 拆卸的连坐规则
+
+得分物**不能悬空**：拆掉一个，**它上面的 Pin / Cup 一并拆掉**（`store.removeItem` 只保留
+被拆那个**下面**的那些）。垃圾桶删除、Delete 键都走这里。
+
+> 这跟「叠放规则」是配套的：既然 Cup 只能放在 Pin 上、Pin 只能放在 Cup 或桩上，
+> 那么底下那个被抽走，上面那些就没有依附的对象了 → 一起掉。
 
 ### 曾经踩过的坑（别再踩）
 
