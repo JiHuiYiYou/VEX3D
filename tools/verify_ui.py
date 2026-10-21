@@ -472,6 +472,25 @@ def main():
         time.sleep(0.3)
         counts = page.evaluate("() => JSON.stringify(window.__vex3d.getState().midfieldCounts)")
         check("中场机器人数能改", '"red":1' in counts and '"blue":0' in counts, counts)
+
+        # 每方只有 2 台机器人 → 封顶
+        page.evaluate("() => window.__vex3d.getState().setMidfieldCounts(9, -3)")
+        time.sleep(0.3)
+        clamped = page.evaluate(
+            "() => JSON.stringify(window.__vex3d.getState().midfieldCounts)"
+        )
+        check("中场机器人数封顶在 2（每方只有 2 台机器人）",
+              '"red":2' in clamped and '"blue":0' in clamped, clamped)
+        # 加号到顶了就该禁用
+        plus_disabled = page.evaluate(
+            """() => {
+              const btns = document.querySelectorAll('.count-row .count-btn');
+              return btns[1] && btns[1].disabled;   // 红方的 ＋
+            }"""
+        )
+        check("到上限后「＋」按钮禁用", bool(plus_disabled))
+        page.evaluate("() => window.__vex3d.getState().setMidfieldCounts(1, 0)")
+        time.sleep(0.3)
         # 中场放一个黄 pin：红方 1 台 > 蓝方 0 台 → 归红方
         red_before = int(page.evaluate(
             "() => document.querySelector('.score-cell.red .score-num').textContent"

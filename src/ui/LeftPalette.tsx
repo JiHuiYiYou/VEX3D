@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useApp, makePaletteItem } from '@/state/store'
+import { useApp, makePaletteItem, MAX_ROBOTS_PER_ALLIANCE } from '@/state/store'
 import { PIN_VARIANTS, CUP_VARIANTS, COLORS, GOAL_BY_ID, goalKind, goalName } from '@/data/fieldSpec'
 import { ToggleView } from './ToggleView'
 
@@ -202,6 +202,7 @@ function MidfieldCounts() {
       <span className={`count-label ${alliance}`}>{label}</span>
       <button
         className="count-btn"
+        disabled={value <= 0}
         onClick={() => setCounts(counts.red - (alliance === 'red' ? 1 : 0), counts.blue - (alliance === 'blue' ? 1 : 0))}
       >
         −
@@ -209,6 +210,7 @@ function MidfieldCounts() {
       <span className="count-value">{value}</span>
       <button
         className="count-btn"
+        disabled={value >= MAX_ROBOTS_PER_ALLIANCE}
         onClick={() => setCounts(counts.red + (alliance === 'red' ? 1 : 0), counts.blue + (alliance === 'blue' ? 1 : 0))}
       >
         ＋
@@ -223,7 +225,7 @@ function MidfieldCounts() {
       </div>
       <div className="hint small">
         填<b>赛局结束时</b>中场的机器人数量（<code>&lt;SC5&gt;b</code> / <code>&lt;SC6&gt;</code>）。
-        每台 8 分，且机器人数多的一方拥有中场的黄色 pin。
+        每台 8 分，且机器人数多的一方拥有中场的黄色 pin。每方只有 2 台机器人，最多填 2。
       </div>
       {row('红方', 'red', counts.red)}
       {row('蓝方', 'blue', counts.blue)}

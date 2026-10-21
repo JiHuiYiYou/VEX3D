@@ -219,6 +219,13 @@ console.log('\n── 场景 19：没有中场的机器人 → 不加机器人�
   eq('双方机器人 0 分', r.robotPoints.red + r.robotPoints.blue, 0)
 }
 
+console.log('\n── 场景 20：中场机器人数每方最多 2 台（每方只有 2 台机器人）──')
+{
+  const r = run({ 'g-center': [pin('yellow', 'yellow')] }, toggles(), { red: 2, blue: 2 })
+  eq('红方 2 台 = 16 分', r.robotPoints.red, 16)
+  eq('蓝方 2 台 = 16 分', r.robotPoints.blue, 16)
+}
+
 console.log('\n── 摆放合法性：Pin 只能放 Cup 上或直接放桩上，Cup 只能放 Pin 上 ──')
 {
   eq('空桩上放 Pin → 合法', checkPlacement('pin', []).ok, true)

@@ -104,6 +104,7 @@ src/
 - `<SC5> b` 中场高 goal 里的黄色 pin 归**中场机器人数多的一方**（相等则都不拥有）
   → 左侧面板选中中场 goal 时有「中场机器人数量」计数器（`midfieldCounts`）。
   同一批机器人数还按**每台 8 分**计入总分（`scoreField` 的 `robotPoints`）。
+  每方只有 2 台机器人 → 计数封顶在 2（`store.MAX_ROBOTS_PER_ALLIANCE`，`setMidfieldCounts` 里夹紧）。
 - **摆放规则**（用户口径，非手册原文）：`goal → pin → cup → pin → cup …`
   —— pin 只能放 cup 上或直接放 goal 上，cup 只能放 pin 上；其它组合**直接拒绝**并弹提示
   （`scoring.ts` 的 `checkPlacement`）。

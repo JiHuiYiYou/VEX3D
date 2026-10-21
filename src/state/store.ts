@@ -88,6 +88,12 @@ export const newId = (prefix: string) => `${prefix}-${++uid}-${Date.now().toStri
 
 const TOGGLE_CYCLE: ToggleState[] = ['red', 'blue', 'yellow']
 
+/** 每方只有 2 台机器人，所以中场的机器人数只能是 0…2 */
+export const MAX_ROBOTS_PER_ALLIANCE = 2
+
+const clampRobots = (n: number) =>
+  Math.max(0, Math.min(MAX_ROBOTS_PER_ALLIANCE, Math.round(n) || 0))
+
 /**
  * Toggle 只有 **3 个有效朝向**：红 / 蓝 / 黄（手册 <SC4>）。
  * 黄色 = 「谁都不拥有该区域的黄色 Pin」；现场照片里场上的 4 个 Toggle 默认就是黄的。
@@ -144,7 +150,12 @@ export const useApp = create<AppState>((set, get) => ({
   selectItem: (id) => set({ selectedItemId: id }),
 
   setMidfieldCounts: (red, blue) =>
-    set({ midfieldCounts: { red: Math.max(0, red), blue: Math.max(0, blue) } }),
+    set({
+      midfieldCounts: {
+        red: clampRobots(red),
+        blue: clampRobots(blue),
+      },
+    }),
 
   togglePaletteFlip: () => set((s) => ({ paletteFlipped: !s.paletteFlipped })),
 
