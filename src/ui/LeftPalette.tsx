@@ -223,6 +223,7 @@ function MidfieldCounts() {
       </div>
       <div className="hint small">
         填<b>赛局结束时</b>中场的机器人数量（<code>&lt;SC5&gt;b</code> / <code>&lt;SC6&gt;</code>）。
+        每台 8 分，且机器人数多的一方拥有中场的黄色 pin。
       </div>
       {row('红方', 'red', counts.red)}
       {row('蓝方', 'blue', counts.blue)}

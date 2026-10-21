@@ -89,6 +89,8 @@ export interface ScoreResult {
   perGoal: Record<string, GoalScore>
   /** 被扣掉的（不计分的）pin 半数量 */
   blocked: number
+  /** 中场机器人的得分：赛局结束时每台在中场的机器人 8 分 */
+  robotPoints: { red: number; blue: number }
 }
 
 export interface ScoringInput {
@@ -101,6 +103,8 @@ export interface ScoringInput {
 
 const POINTS_ALLIANCE = 5
 const POINTS_YELLOW = 10
+/** 每台位于中场的机器人 8 分（赛局结束时在中场区域） */
+const POINTS_MIDFIELD_ROBOT = 8
 
 /**
  * **Goal 算不算「罩住」Pin 的下半？**
@@ -305,7 +309,15 @@ export function scoreField(input: ScoringInput): ScoreResult {
     blocked += r.halves.filter((h) => h.covered && !h.scored).length
   }
 
-  return { red, blue, halves, perGoal, blocked }
+  // 每台位于中场的机器人 8 分（赛局结束时在中场区域）
+  const robotPoints = {
+    red: midfieldCounts.red * POINTS_MIDFIELD_ROBOT,
+    blue: midfieldCounts.blue * POINTS_MIDFIELD_ROBOT,
+  }
+  red += robotPoints.red
+  blue += robotPoints.blue
+
+  return { red, blue, halves, perGoal, blocked, robotPoints }
 }
 
 export interface PlacementCheck {

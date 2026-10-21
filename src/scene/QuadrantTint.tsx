@@ -58,6 +58,14 @@ const STATE_ALPHA: Record<ToggleState, number> = {
   yellow: 0.13,
 }
 
+/** 中场区域 = 中心的菱形（4 个区域之外剩下的那块） */
+const MIDFIELD_POLY: [number, number][] = [
+  [DIAMOND_VERTEX, 0],
+  [0, DIAMOND_VERTEX],
+  [-DIAMOND_VERTEX, 0],
+  [0, -DIAMOND_VERTEX],
+]
+
 function polygonGeometry(pts: [number, number][]): THREE.BufferGeometry {
   const shape = new THREE.Shape()
   shape.moveTo(pts[0][0], pts[0][1])
@@ -74,6 +82,7 @@ export function QuadrantTint() {
   const toggles = useApp((s) => s.toggles)
   const show = useApp((s) => s.showQuadrantTint)
   const hoverQuadrant = useApp((s) => s.hoverQuadrant)
+  const counts = useApp((s) => s.midfieldCounts)
 
   const geos = useMemo(
     () => ({
@@ -81,9 +90,15 @@ export function QuadrantTint() {
       bottom: polygonGeometry(POLY.bottom),
       right: polygonGeometry(POLY.right),
       top: polygonGeometry(POLY.top),
+      midfield: polygonGeometry(MIDFIELD_POLY),
     }),
     [],
   )
+
+  // 中场没有 toggle：黄色 pin 归「赛局结束时中场机器人数多的一方」（<SC5>b），
+  // 数量相同则谁都不拥有 → 用黄色（跟 toggle 的「没人拥有」同一个约定）
+  const midfieldState: ToggleState =
+    counts.red > counts.blue ? 'red' : counts.blue > counts.red ? 'blue' : 'yellow'
 
   if (!show) return null
 
@@ -110,6 +125,17 @@ export function QuadrantTint() {
           </mesh>
         )
       })}
+
+      {/* 中场：按「谁拥有中场」染色 */}
+      <mesh geometry={geos.midfield} renderOrder={2}>
+        <meshBasicMaterial
+          color={STATE_COLOR[midfieldState]}
+          transparent
+          opacity={STATE_ALPHA[midfieldState]}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
     </group>
   )
 }

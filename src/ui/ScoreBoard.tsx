@@ -31,6 +31,7 @@ interface PinRow {
 
 export function ScoreBoard() {
   const scores = useScores()
+  const counts = useApp((s) => s.midfieldCounts)
   const [hover, setHover] = useState<string | null>(null)
 
   /** 按 goal → pin 分组（一个 pin 一行，两个色点 = 上下两半） */
@@ -79,7 +80,16 @@ export function ScoreBoard() {
       </div>
 
       <div className="score-note">
-        联盟色 pin 半 5 分 · 被拥有的黄色 pin 半 10 分
+        联盟色 pin 半 5 分 · 被拥有的黄色 pin 半 10 分 · 中场每台机器人 8 分
+        {(counts.red > 0 || counts.blue > 0) && (
+          <>
+            <br />
+            <span className="muted">
+              中场机器人：红 {counts.red} 台 <b className="red-txt">+{scores.robotPoints.red}</b> ·
+              蓝 {counts.blue} 台 <b className="blue-txt">+{scores.robotPoints.blue}</b>
+            </span>
+          </>
+        )}
         {scores.blocked > 0 && (
           <>
             <br />

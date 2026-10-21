@@ -490,8 +490,15 @@ def main():
         red_score = int(page.evaluate(
             "() => document.querySelector('.score-cell.red .score-num').textContent"
         ))
+        # 红 1 台 vs 蓝 0 台：机器人的 8 分在放黄 pin 之前就已经计进去了，
+        # 所以这里的增量只是中场黄半的 10 分
         check("中场机器人数多的那方拥有中场的黄色 pin",
               red_score - red_before == 10, f"红方 +{red_score - red_before} 分（应为 10）")
+        # 计分板上要能看到这 8 分的明细
+        board = page.locator(".score-note").inner_text()
+        check("计分板列出中场机器人的得分",
+              "中场机器人" in board and "8" in board,
+              " ".join(board.split()))
         page.evaluate(
             """() => {
               const st = window.__vex3d.getState();

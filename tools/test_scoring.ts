@@ -130,7 +130,8 @@ console.log('\n── 场景 9：中场高桩里的黄黄 Pin，双方中场机�
 console.log('\n── 场景 10：中场蓝方机器人更多 → 中场黄色 Pin 归蓝方（下半被桩挡住，只剩上半）──')
 {
   const r = run({ 'g-center': [pin('yellow', 'yellow')] }, toggles(), { red: 0, blue: 1 })
-  eq('蓝方 10 分', r.blue, 10)
+  eq('黄半 10 分 + 1 台中场机器人 8 分 = 蓝方 18 分', r.blue, 18)
+  eq('机器人得分 8 分', r.robotPoints.blue, 8)
 }
 
 console.log('\n── 场景 11：Pin 直接压在另一个 Pin 上（中间没有 Cup）→ 不算 placed ──')
@@ -200,6 +201,22 @@ console.log('\n── 场景 17：Cup 直接放在 Goal 上（非法摞）→ �
   eq('没有任何端子', r.halves.length, 0)
   eq('红方 0 分', r.red, 0)
   eq('蓝方 0 分', r.blue, 0)
+}
+
+console.log('\n── 场景 18：每台位于中场的机器人 8 分（赛局结束时在中场）──')
+{
+  // 中场放一个黄 pin：红方 1 台 vs 蓝方 2 台 → 蓝方机器人数多
+  const r = run({ 'g-center': [pin('yellow', 'yellow')] }, toggles(), { red: 1, blue: 2 })
+  eq('蓝方 2 台机器人 = 16 分', r.robotPoints.blue, 16)
+  eq('红方 1 台机器人 = 8 分', r.robotPoints.red, 8)
+  eq('蓝方总分 16 + 10（黄半）= 26', r.blue, 26)
+  eq('红方总分 8 + 0 = 8', r.red, 8)
+}
+
+console.log('\n── 场景 19：没有中场的机器人 → 不加机器人分 ──')
+{
+  const r = run({ 'g-n1': [pin('red', 'red')] }, toggles(), { red: 0, blue: 0 })
+  eq('双方机器人 0 分', r.robotPoints.red + r.robotPoints.blue, 0)
 }
 
 console.log('\n── 摆放合法性：Pin 只能放 Cup 上或直接放桩上，Cup 只能放 Pin 上 ──')
