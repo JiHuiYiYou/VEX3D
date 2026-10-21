@@ -37,7 +37,11 @@ export function DragGhost() {
   useFrame(() => {
     const g = group.current
     if (!g || !dragging) return
-    g.visible = true
+    // 指针不在画布上时不画幽灵件：
+    // ① 从左栏**单击**放置时，幽灵件不会在画布边缘闪一下
+    // ② 拖拽从左栏出发，进了画布才出现幽灵件
+    g.visible = dragPointer.overCanvas
+    if (!g.visible) return
     invalidate() // 拖拽时保持连续刷新
 
     const st = useApp.getState()
