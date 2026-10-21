@@ -27,7 +27,7 @@ export const sceneBridge = {
   controls: null as null | { target: THREE.Vector3; update: () => void },
 }
 
-export type ViewPreset = 'iso' | 'top' | 'west' | 'low'
+export type ViewPreset = 'iso' | 'top' | 'west' | 'low' | 'setup'
 
 /**
  * 切到预设视角。
@@ -43,6 +43,11 @@ export function applyView(preset: ViewPreset) {
     case 'top':
       camera.position.set(0, 5200, 0)
       camera.up.set(0, 0, -1) // 画面上方 = 场地北
+      break
+    case 'setup':
+      // 「摆场」用的俯视：拉远到能连红/蓝装填区（±2445 mm）一起看进来
+      camera.position.set(0, 6600, 0)
+      camera.up.set(0, 0, -1)
       break
     case 'west':
       camera.position.set(2500, 700, 0)

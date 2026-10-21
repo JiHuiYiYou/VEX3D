@@ -19,8 +19,8 @@ export function TrashZone() {
   const glowRef = useRef<HTMLDivElement>(null)
   const binRef = useRef<HTMLDivElement>(null)
 
-  // 只有「拖动已放置的得分物」才是删除手势；从面板拖新件是放置手势，不该有红光
-  const deleting = dragging?.kind === 'stack'
+  // 只有「拖动已放置的得分物 / 散件」才是删除手势；从面板拖新件是放置手势，不该有红光
+  const deleting = dragging?.kind === 'stack' || dragging?.kind === 'loose'
 
   useEffect(() => {
     if (!deleting) return

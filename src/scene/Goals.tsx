@@ -31,13 +31,30 @@ function useHalfGeometry(kind: 'pin' | 'cup', color: string) {
   return cad ?? (kind === 'pin' ? PIN_GEO : CUP_GEO)
 }
 
-function HalfMesh({ item, halfIndex, baseY }: { item: StackItem; halfIndex: 0 | 1; baseY: number }) {
+export function HalfMesh({
+  item,
+  halfIndex,
+  baseY,
+  castShadow = true,
+}: {
+  item: StackItem
+  halfIndex: 0 | 1
+  baseY: number
+  /** 散件很多，关掉阴影省一大笔 shadow pass */
+  castShadow?: boolean
+}) {
   const t = halfTransform(item, halfIndex, baseY)
   const color = item.halves[halfIndex]
   const geo = useHalfGeometry(item.kind, color)
   const isClear = color === 'clear'
   return (
-    <mesh geometry={geo} position={t.pos} rotation={[t.rotX, 0, 0]} castShadow receiveShadow>
+    <mesh
+      geometry={geo}
+      position={t.pos}
+      rotation={[t.rotX, 0, 0]}
+      castShadow={castShadow}
+      receiveShadow
+    >
       {isClear ? (
         <meshPhysicalMaterial
           color={HALF_COLORS[color]}

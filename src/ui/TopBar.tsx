@@ -1,5 +1,6 @@
 import { useApp, QUALITY_LABEL } from '@/state/store'
 import { getFieldSpec } from '@/data/fieldSpec'
+import { INITIAL_GOAL_STACKS, INITIAL_LOOSE } from '@/data/presets'
 import { applyView, type ViewPreset } from '@/scene/bridge'
 import type { Quality } from '@/state/store'
 
@@ -14,6 +15,7 @@ const QUALITIES: Quality[] = ['high', 'medium', 'low']
 
 export function TopBar() {
   const resetField = useApp((s) => s.resetField)
+  const applySetup = useApp((s) => s.applySetup)
   const selectedGoalId = useApp((s) => s.selectedGoalId)
   const selectedItemId = useApp((s) => s.selectedItemId)
   const flipItem = useApp((s) => s.flipItem)
@@ -65,6 +67,16 @@ export function TopBar() {
             翻转选中件
           </button>
         )}
+        <button
+          className="tbtn"
+          title="按官方开局示意图摆好全场：goal 上的得分物、场地散件、红/蓝装填区"
+          onClick={() => {
+            applySetup({ stacks: INITIAL_GOAL_STACKS, loose: INITIAL_LOOSE })
+            applyView('setup')
+          }}
+        >
+          摆场
+        </button>
         <button className="tbtn" onClick={resetField} title="清空所有得分物与 Toggle 状态">
           重置
         </button>

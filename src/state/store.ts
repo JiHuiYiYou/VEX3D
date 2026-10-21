@@ -7,6 +7,28 @@ import type { StackItem } from './scoring'
 export type DragPayload =
   | { kind: 'palette'; item: StackItem; from: 'pin' | 'cup' }
   | { kind: 'stack'; item: StackItem; goalId: string }
+  | { kind: 'loose'; item: StackItem; looseId: string }
+
+/**
+ * 场上**不在 goal 里**的得分物（散件）。
+ *
+ * 官方开局示意图里有三类：
+ *  · 站在垫子上的 cup（有的里面插着 pin）
+ *  · 装填区里备着的 cup / pin
+ *  · 躺平（水平放置）的 pin
+ *
+ * 散件**不参与计分**（手册只算 goal 里的 pin 和中场的机器人）。
+ */
+export interface LooseItem {
+  id: string
+  kind: 'pin' | 'cup'
+  halves: [string, string]
+  /** 场地坐标 (X 东, Y 北)，mm */
+  x: number
+  y: number
+  /** 底端离地高度（mm）：插在 cup 里的 pin 是 164.5，其余是 0 */
+  z?: number
+}
 
 /** 画质档位：给弱机器（学校笔记本 / 投影仪）留的退路 */
 export type Quality = 'high' | 'medium' | 'low'
@@ -20,6 +42,8 @@ export const QUALITY_LABEL: Record<Quality, string> = {
 export interface AppState {
   /** 每个 goal 上的堆栈，数组顺序 = 自下而上 */
   stacks: Record<string, StackItem[]>
+  /** 场上不在 goal 里的得分物（散件） */
+  loose: LooseItem[]
   /** 4 个 Toggle 的状态 */
   toggles: Record<QuadrantId, ToggleState>
 
@@ -68,6 +92,12 @@ export interface AppState {
   /** 放置（非法叠放会被拒绝，返回 false 并写 placeError） */
   placeItem: (goalId: string, item: StackItem) => boolean
   removeItem: (goalId: string, itemId: string) => void
+  /** 散件：设置 / 挪位置 / 删除 */
+  setLoose: (items: LooseItem[]) => void
+  moveLoose: (id: string, x: number, y: number) => void
+  removeLoose: (id: string) => void
+  /** 一键摆成官方开局的样子 */
+  applySetup: (setup: { stacks: Record<string, StackItem[]>; loose: LooseItem[] }) => void
   flipItem: (goalId: string, itemId: string) => void
   setToggle: (q: QuadrantId, state: ToggleState) => void
   cycleToggle: (q: QuadrantId) => void
@@ -114,6 +144,7 @@ const initialQuality = (): Quality => {
 
 export const useApp = create<AppState>((set, get) => ({
   stacks: {},
+  loose: [],
   toggles: initialToggles(),
 
   selectedGoalId: null,
@@ -245,6 +276,27 @@ export const useApp = create<AppState>((set, get) => ({
     if (get().overTrash !== v) set({ overTrash: v })
   },
 
+  setLoose: (items) => set({ loose: items }),
+
+  moveLoose: (id, x, y) =>
+    set((s) => ({
+      loose: s.loose.map((it) => (it.id === id ? { ...it, x, y } : it)),
+    })),
+
+  removeLoose: (id) => set((s) => ({ loose: s.loose.filter((it) => it.id !== id) })),
+
+  /** 一键摆成官方开局的样子（= 重置 + 灌预设） */
+  applySetup: (setup) =>
+    set({
+      stacks: { ...setup.stacks },
+      loose: setup.loose.map((it) => ({ ...it })),
+      selectedGoalId: null,
+      selectedItemId: null,
+      selectedToggleId: null,
+      dragging: null,
+      placeError: null,
+    }),
+
   /** 拖拽时更新落点判定（只有「从面板拖新件」才需要判定） */
   setDropTarget: (goalId) => {
     const s = get()
@@ -272,6 +324,7 @@ export const useApp = create<AppState>((set, get) => ({
   resetField: () =>
     set({
       stacks: {},
+      loose: [],
       toggles: initialToggles(),
       selectedGoalId: null,
       selectedToggleId: null,

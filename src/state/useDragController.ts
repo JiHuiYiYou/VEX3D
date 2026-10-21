@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useApp } from './store'
 import { dragPointer, resetDragPointer, edgeDistances, TRASH_EDGE } from './drag'
-import { pickDropTarget, sceneBridge, stageRect } from '@/scene/bridge'
+import { pickDropTarget, pickOnPlane, sceneBridge, stageRect } from '@/scene/bridge'
 
 /**
  * 全局拖拽控制器。
@@ -42,8 +42,10 @@ export function useDragController() {
         e.clientY >= stage.top &&
         e.clientY <= stage.bottom
       const { nearest } = edgeDistances(e.clientX, e.clientY, stage)
-      // 只有拖「已放好的件」才是删除手势；面板里拖新件靠边不算数（照常放件）
-      st.setOverTrash(st.dragging?.kind === 'stack' && insideCanvas && nearest < TRASH_EDGE)
+      // 只有拖「已放好的件 / 散件」才是删除手势；面板里拖新件靠边不算数（照常放件）
+      const kind = st.dragging?.kind
+      const deleting = kind === 'stack' || kind === 'loose'
+      st.setOverTrash(deleting && insideCanvas && nearest < TRASH_EDGE)
 
       // 拾取放置目标
       if (overCanvas) {
@@ -65,10 +67,21 @@ export function useDragController() {
       const d = st.dragging
       if (!d) return
       if (st.overTrash) {
-        // 拖到垃圾桶 → 删除已放置的件；面板里拖出来的东西直接丢弃
+        // 拖到垃圾桶 → 删除（已放好的件 / 散件）；面板里拖出来的东西直接丢弃
         if (d.kind === 'stack') st.removeItem(d.goalId, d.item.id)
+        else if (d.kind === 'loose') st.removeLoose(d.looseId)
       } else if (d.kind === 'palette' && st.hoverGoalId) {
         st.placeItem(st.hoverGoalId, d.item)
+      } else if (d.kind === 'loose') {
+        // 散件：落在 goal 上 → 进那个 goal 的摞（非法组合 placeItem 会拒绝）；
+        // 否则 → 挪到落地的位置
+        if (st.hoverGoalId) {
+          if (st.placeItem(st.hoverGoalId, d.item)) st.removeLoose(d.looseId)
+        } else {
+          const p = pickOnPlane(dragPointer.clientX, dragPointer.clientY, 0)
+          // three 的 z = −场地 Y
+          if (p) st.moveLoose(d.looseId, p.x, -p.z)
+        }
       }
       st.setDragging(null)
     }

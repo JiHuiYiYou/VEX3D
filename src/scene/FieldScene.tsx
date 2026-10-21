@@ -8,6 +8,7 @@ import { Goals } from './Goals'
 import { QuadrantTint } from './QuadrantTint'
 import { Toggles } from './Toggles'
 import { ToggleHandles } from './ToggleHandles'
+import { LooseItems } from './LooseItems'
 import { DragGhost } from './DragGhost'
 import { useApp } from '@/state/store'
 import { getFieldSpec } from '@/data/fieldSpec'
@@ -67,6 +68,7 @@ function Scene() {
       )}
       <QuadrantTint />
       <ToggleHandles />
+      <LooseItems />
       <Goals goals={spec.goals} />
       <DragGhost />
 

@@ -16,6 +16,23 @@ C:/Users/liuzhen/miniconda3/python.exe tools/verify_ui.py   # 端到端（需先
 
 `python` 在 PATH 上指向 MSYS2 的（没 playwright），要用 miniconda3 那个。
 
+## 摆场预设（官方开局布局）
+
+顶栏「摆场」= 重置 + 灌一份预设：一键把场地摆成官方手册俯视示意图
+（`study/VEX/image/2D俯视示意图.png`）的样子。
+
+- **数据**在 `src/data/presets.ts`，由 `tools/extract_setup.py` 从那张示意图里抠出来
+  （用图里 4 根黄色 toggle 标定坐标，0.1585 px/mm）✓ 改图后重跑脚本即可。
+- **内容**：4 个中立 goal + 中场 goal 各一根黄/黄 pin（4 个联盟 goal 空着）；
+  场地上的 cup（有的里面插着 pin）；北/南墙内侧各 2 组 (cup, pin, cup)；
+  红/蓝装填区各 10 组 (cup + pin) + 几根散放的 pin —— 共 72 个散件。
+- **散件**（`store.loose` / `LooseItem`）是**新概念**：场上不在 goal 里的得分物。
+  它们**不参与计分**（手册只算 goal 里的 pin 和中场的机器人）。
+- **散件能拖能删**：拖到画布边缘 → 垃圾桶删掉；拖到某个 goal 上 → 进那个 goal 的摞
+  （非法组合照常拒绝）；拖到别处 → 挪位置。
+  插在 cup 里的 pin，底端在 cup 底 + 164.5（跟 pin 插在 goal 孔里是同一套关系）。
+- 摆场后自动切到 `setup` 视角（俯视拉远到 6600 mm，红/蓝装填区也进得来）。
+
 ## 目录
 
 ```
@@ -29,6 +46,8 @@ src/
   state/store.ts     zustand store
   state/drag.ts      拖拽指针状态（放在 React 之外，避免每帧重渲染）
   scene/stackLayout.ts ★ 堆叠几何：半体摆放 + 嵌套落点（3D / 幽灵件 / 测试共用）
+  scene/LooseItems.tsx  场上不在 goal 里的得分物（散件）
+  data/presets.ts      ★ 官方开局布局（摆场预设，由 tools/extract_setup.py 生成）
   scene/             R3F 场景：场地 / goal / 得分物 / toggle / 区域染色 / 拖拽幽灵件
   ui/                左侧面板（调色板 / toggle 设置）、计分板、规则说明、垃圾桶
 ```

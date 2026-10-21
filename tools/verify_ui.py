@@ -641,6 +641,89 @@ def main():
         )
         check("选中的 goal 在 3D 里高亮（青色环 + 光柱）", sel_ring >= 3, f"{sel_ring} 个高亮片")
 
+        # ── 8d. 摆场预设：还原官方开局 ─────────────────────────
+        page.locator(".topbar button", has_text="摆场").click()
+        time.sleep(1.5)
+        setup = page.evaluate("""() => {
+          const st = window.__vex3d.getState();
+          const stacks = {};
+          for (const [k, v] of Object.entries(st.stacks)) if (v.length) stacks[k] = v.length;
+          return {
+            stacks,
+            loose: st.loose.length,
+            inField: st.loose.filter(x => Math.abs(x.x) < 1900 && Math.abs(x.y) < 1900).length,
+            inStage: st.loose.filter(x => Math.abs(x.x) > 1900).length,
+          };
+        }""")
+        check("摆场：4 个中立 goal + 中场各一根 pin，4 个联盟 goal 空着",
+              setup["stacks"] == {"g-n1": 1, "g-n2": 1, "g-n3": 1, "g-n4": 1, "g-center": 1},
+              str(setup["stacks"]))
+        check("摆场：散件铺满了场地和红蓝装填区",
+              setup["loose"] > 40 and setup["inField"] > 5 and setup["inStage"] > 30,
+              f"共 {setup['loose']} 个（场地 {setup['inField']} / 装填区 {setup['inStage']}）")
+        page.screenshot(timeout=180000, path=os.path.join(SHOTS, "07-setup.png"))
+
+        # 散件能删：拖一个到画布边缘
+        loose_before = page.evaluate("() => window.__vex3d.getState().loose.length")
+        loose_pt = page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              const it = st.loose.find(x => Math.abs(x.x) < 1900 && Math.abs(x.y) < 1900);
+              if (!it) return null;
+              const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+              const v = new b.camera.position.constructor(it.x, 40, -it.y);
+              v.project(b.camera);
+              const r = b.domElement.getBoundingClientRect();
+              return [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+            }"""
+        )
+        if loose_pt:
+            page.mouse.move(loose_pt[0], loose_pt[1])
+            page.mouse.down()
+            page.mouse.move(box["x"] + 30, loose_pt[1], steps=8)
+            time.sleep(0.3)
+            page.mouse.up()
+            time.sleep(0.5)
+            loose_after = page.evaluate("() => window.__vex3d.getState().loose.length")
+            check("散件能拖到边缘删除", loose_after == loose_before - 1,
+                  f"{loose_before} → {loose_after}")
+
+        # 散件能进 goal 的摞：空的联盟 goal 能放 pin；摞顶是 pin 时 cup 放不进去
+        goal_ok = page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              const g = 'g-b1';                       // 开局是空的
+              const before = (st.stacks[g] || []).length;
+              st.placeItem(g, { id: 'test-pin', kind: 'pin', halves: ['red','red'] });
+              const mid = (window.__vex3d.getState().stacks[g] || []).length;
+              st.placeItem(g, { id: 'test-pin2', kind: 'pin', halves: ['red','red'] });
+              const after = (window.__vex3d.getState().stacks[g] || []).length;
+              st.placeItem(g, { id: 'test-cup', kind: 'cup', halves: ['clear','gray'] });
+              const afterCup = (window.__vex3d.getState().stacks[g] || []).length;
+              return { before, mid, after, afterCup };
+            }"""
+        )
+        # 空 goal → 放 pin ✅ → 再放一个 pin ❌（pin 不能叠 pin）→ 放 cup ✅（cup 能放 pin 上）
+        check("散件能进 goal 的摞，且守住叠放规则（pin 不能叠 pin、cup 能放 pin 上）",
+              bool(goal_ok) and goal_ok["mid"] == goal_ok["before"] + 1
+              and goal_ok["after"] == goal_ok["mid"]
+              and goal_ok["afterCup"] == goal_ok["after"] + 1, str(goal_ok))
+
+        # 重置：全清
+        page.locator(".topbar button", has_text="重置").click()
+        time.sleep(0.8)
+        after_reset = page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              return {
+                stacks: Object.values(st.stacks).flat().length,
+                loose: st.loose.length,
+              };
+            }"""
+        )
+        check("重置：得分物和散件都清空",
+              after_reset["stacks"] == 0 and after_reset["loose"] == 0, str(after_reset))
+
         # ── 9. 相机能转 ─────────────────────────────────────
         page.mouse.move(cx, cy)
         page.mouse.down()
