@@ -21,25 +21,25 @@
  *
  * <SC4> Toggle 只有 3 种可计分朝向（红 / 蓝 / 黄）；未就位则为中立，双方都不拥有。
  *
- * <SC5> a. 象限内的黄色 Pin 由该象限 Toggle 的颜色决定归属；Toggle 设为黄色则不得分。
+ * <SC5> a. 区域内的黄色 Pin 由该区域 Toggle 的颜色决定归属；Toggle 设为黄色则不得分。
  *      b. 中场区域内的黄色 Pin 由中场机器人数量多的一方拥有；相等则双方都不拥有。
  *
  * 分值：联盟色 Pin 半 5 分，被拥有的黄色 Pin 半 10 分。
  *
  * ── 本引擎采用的物理模型（CAD 装配树实测 + 手册图 SC5-1/2）──
- *   · 一个「件」= 一个完整的 Pin（两个同色系半体）或一个完整的 Cup（透明半 + 灰半）。
+ *   · 一个「件」= 一个完整的 Pin（两个同色系的半）或一个完整的 Cup（透明半 + 灰半）。
  *   · **Pin = 翻边对翻边**（线轴，腰在中间，高 165）；**Cup = 杯口对杯口**（沙漏，
  *     两端敞口宽沿、中间 Ø59 细腰，高 164.5）—— 两种件形状不同，别混。
  *   · 堆栈自下而上：stack[0] 最靠近 Goal。
  *   · **罩住关系（关键）**：
  *       · Pin 的**上半**被**上面那个 Cup 的下半**罩住  → 用 aboveCup.halves[0] 判
  *       · Pin 的**下半**被**下面那个 Cup 的上半**罩住  → 用 belowCup.halves[1] 判
- *     罩住的那一半若是**透明(clear)** → 该端子「嵌在透明半体里」→ 照常计分；
+ *     罩住的那一半若是**透明(clear)** → 这个 pin 半「嵌在透明半里」→ 照常计分；
  *     若是**不透明(gray)** → 「被不透明杯遮挡」→ 不得分。
  *     等价的说法：Cup 的下半罩住它**下面**那个 Pin 的上半；Cup 的上半罩住它**上面**那个 Pin 的下半。
  *   · Goal 不是 Cup，**不挡分**：直接放在 Goal 上的 Pin 两半都照常计分。
- *     （⚠️ 这一条由 `GOAL_COVERS_PIN_LOWER` 控制：设成 true 时，插在桩孔里的那个 Pin
- *      的**下半**也算被桩挡住 → 不计分。默认 true 是用户口径；手册图 SC5-1/2 是相反的，
+ *     （⚠️ 这一条由 `GOAL_COVERS_PIN_LOWER` 控制：设成 true 时，插在 goal 孔里的那个 Pin
+ *      的**下半**也算被 goal 挡住 → 不计分。默认 true 是用户口径；手册图 SC5-1/2 是相反的，
  *      详见那个常量的注释。）
  *   · 摆放规则：Pin 只能放在 Cup 上，或直接放在 Goal 上；Cup 只能放在 Pin 上。
  *     所以栈必然是 Pin/Cup/Pin/Cup… 交替，第 0 件是直接嵌在 Goal 上的 Pin。
@@ -48,6 +48,10 @@
  */
 
 import type { Alliance, CupHalf, GoalSpec, PinColor, QuadrantId, ToggleState } from '@/data/fieldSpec'
+// ⚠️ 这里必须用**相对路径 + .ts 扩展名**：本文件要被 `node tools/test_scoring.ts`
+// 直接加载（Node 原生剥离类型），别名 '@/...' 在 node 里解析不了。
+// terms.ts 本身没有任何 import，所以这样是安全的。
+import { QUADRANT_ALLIANCE_TAG } from '../data/terms.ts'
 
 export type StackItem =
   | { id: string; kind: 'pin'; halves: [PinColor, PinColor] }
@@ -83,7 +87,7 @@ export interface ScoreResult {
   blue: number
   halves: HalfResult[]
   perGoal: Record<string, GoalScore>
-  /** 被扣掉的（不计分的）半体数量 */
+  /** 被扣掉的（不计分的）pin 半数量 */
   blocked: number
 }
 
@@ -101,9 +105,9 @@ const POINTS_YELLOW = 10
 /**
  * **Goal 算不算「罩住」Pin 的下半？**
  *
- * 本工具目前按 **true**（用户口径）：直接插在 Goal 孔里的那个 Pin，它的**下半**被桩挡住 → 不计分。
+ * 本工具目前按 **true**（用户口径）：直接插在 goal 孔里的那个 Pin，它的**下半**被 goal 挡住 → 不计分。
  *
- * ⚠️ 但官方手册的图 SC5-1/2 是**相反**的：中间板（Toggle=蓝）里，插在桩孔里的那个黄半
+ * ⚠️ 但官方手册的图 SC5-1/2 是**相反**的：中间板（Toggle=蓝）里，插在 goal 孔里的那个黄半
  * 明确标着 **+10**；左板（Toggle=黄）同一个件标 **+0** —— 两块板只差 Toggle 颜色，
  * 说明那个半**照常计分**，只是看黄色归谁。`<SC3>` 原文也只提 Cup
  * （"nested inside the transparent half of a **Cup** or is not covered by a **Cup**"），
@@ -120,7 +124,7 @@ export function yellowOwner(
   midfieldCounts: { red: number; blue: number },
 ): { owner: Alliance | null; reason: string } {
   if (goal.quadrant === 'midfield') {
-    // <SC5>b 中场区域：机器人数量多的一方拥有
+    // <SC5>b 中场：机器人数量多的一方拥有
     if (midfieldCounts.red > midfieldCounts.blue) {
       return { owner: 'red', reason: '中场红方机器人更多 → 归红方' }
     }
@@ -129,11 +133,12 @@ export function yellowOwner(
     }
     return { owner: null, reason: '中场双方机器人数量相同 → 双方都不拥有，不得分' }
   }
-  // <SC5>a 象限内：由该象限 Toggle 的颜色决定
+  // <SC5>a 区域内：由该区域 toggle 的颜色决定
+  const region = QUADRANT_ALLIANCE_TAG[goal.quadrant]
   const state = toggles[goal.quadrant]
-  if (state === 'red') return { owner: 'red', reason: '该象限 Toggle 设为红色 → 归红方' }
-  if (state === 'blue') return { owner: 'blue', reason: '该象限 Toggle 设为蓝色 → 归蓝方' }
-  return { owner: null, reason: '该象限 Toggle 设为黄色 → 谁都不拥有，黄色 Pin 不得分' }
+  if (state === 'red') return { owner: 'red', reason: `${region}的 toggle 设为红色 → 归红方` }
+  if (state === 'blue') return { owner: 'blue', reason: `${region}的 toggle 设为蓝色 → 归蓝方` }
+  return { owner: null, reason: `${region}的 toggle 设为黄色 → 谁都不拥有，黄色 pin 不得分` }
 }
 
 /**
@@ -187,11 +192,11 @@ export function scoreGoal(
       const placed = placedFlags[i]
 
       // ── <SC3> 遮挡判定 ────────────────────────────────────────────
-      // 一个 Pin 有两个端子：
+      // 一个 Pin 有两个半（上下各一个）：
       //  · 下半被**下面那个 Cup 的上半**罩住（Cup 的上半正好罩住它上面那件的下半）
       //  · 上半被**上面那个 Cup 的下半**罩住
-      // 罩住的那一半若是**不透明(灰)** → 该端子不得分；
-      // 若是**透明** → 「嵌在透明杯半体内」→ 仍然计分。
+      // 罩住的那一半若是**不透明(灰)** → 这个 pin 半不得分；
+      // 若是**透明** → 「嵌在透明杯半里」→ 仍然计分。
       let scored: boolean
       let coverReason: string
       let covered = false
@@ -200,36 +205,36 @@ export function scoreGoal(
           covered = true
           if (belowCup.halves[1] === 'clear') {
             scored = placed
-            coverReason = '下半嵌在下方 Cup 的上半（透明半）里 → 计分'
+            coverReason = 'pin 下半在下面那个 cup 的上半（透明半）里 → 计分'
           } else {
             scored = false
-            coverReason = '下半被下方 Cup 的上半（不透明/灰半）遮住 → 不计分'
+            coverReason = 'pin 下半被下面那个 cup 的上半（不透明/灰半）挡住 → 不计分'
           }
         } else if (GOAL_COVERS_PIN_LOWER && i === 0) {
-          // 直接插在 Goal 孔里的那个 Pin：下半整个埋在桩的 socket 里 → 被桩挡住
+          // 直接插在 goal 孔里的那个 Pin：下半整个埋在 goal 的 socket 里 → 被 goal 挡住
           covered = true
           scored = false
-          coverReason = '下半插在 Goal 的孔里，被桩挡住 → 不计分'
+          coverReason = 'pin 下半插在 goal 的孔里，被 goal 挡住 → 不计分'
         } else {
           scored = placed
-          coverReason = '下半未被 Cup 覆盖 → 计分'
+          coverReason = 'pin 下半没被 cup 覆盖 → 计分'
         }
       } else if (aboveCup) {
         covered = true
         if (aboveCup.halves[0] === 'clear') {
           scored = placed
-          coverReason = '上半嵌在上方 Cup 的下半（透明半）里 → 计分'
+          coverReason = 'pin 上半在上面那个 cup 的下半（透明半）里 → 计分'
         } else {
           scored = false
-          coverReason = '上半被上方 Cup 的下半（不透明/灰半）遮住 → 不计分'
+          coverReason = 'pin 上半被上面那个 cup 的下半（不透明/灰半）挡住 → 不计分'
         }
       } else {
         scored = placed
-        coverReason = '上半未被 Cup 覆盖 → 计分'
+        coverReason = 'pin 上半没被 cup 覆盖 → 计分'
       }
 
       if (!placed) {
-        coverReason = '未嵌套在 Goal 或与已 placed 的 Pin 啮合的 Cup 中 → 不算 placed'
+        coverReason = '没嵌在 goal 里、也不在跟已 placed 的 pin 啮合的 cup 里 → 不算 placed'
       }
 
       // ── 联盟归属 ──────────────────────────────────────────────────
@@ -239,11 +244,11 @@ export function scoreGoal(
       if (color === 'red') {
         alliance = 'red'
         points = POINTS_ALLIANCE
-        ownReason = '红色端子 → 红方联队'
+        ownReason = '这个 pin 半是红色 → 红方得分'
       } else if (color === 'blue') {
         alliance = 'blue'
         points = POINTS_ALLIANCE
-        ownReason = '蓝色端子 → 蓝方联队'
+        ownReason = '这个 pin 半是蓝色 → 蓝方得分'
       } else {
         const { owner, reason } = yellowOwner(goal, toggles, midfieldCounts)
         alliance = owner
@@ -326,14 +331,14 @@ export function checkPlacement(kind: 'pin' | 'cup', stack: StackItem[]): Placeme
   if (!top) {
     return kind === 'pin'
       ? { ok: true, reason: '' }
-      : { ok: false, reason: 'Cup 不能直接放在桩上：桩上只能先放 Pin' }
+      : { ok: false, reason: 'cup 不能直接放在 goal 上：goal 上只能先放 pin' }
   }
   if (kind === 'pin') {
     return top.kind === 'cup'
       ? { ok: true, reason: '' }
-      : { ok: false, reason: 'Pin 不能叠在 Pin 上：Pin 只能放在 Cup 上' }
+      : { ok: false, reason: 'pin 不能叠在 pin 上：pin 只能放在 cup 上' }
   }
   return top.kind === 'pin'
     ? { ok: true, reason: '' }
-    : { ok: false, reason: 'Cup 不能叠在 Cup 上：Cup 只能放在 Pin 上' }
+    : { ok: false, reason: 'cup 不能叠在 cup 上：cup 只能放在 pin 上' }
 }

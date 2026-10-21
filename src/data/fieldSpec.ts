@@ -12,56 +12,22 @@
  */
 
 export type GoalVariant = 'alliance-red' | 'alliance-blue' | 'neutral-short' | 'neutral-tall'
-export type QuadrantId = 'top' | 'right' | 'bottom' | 'left'
-export type ToggleState = 'red' | 'blue' | 'yellow'
-export type PinColor = 'red' | 'blue' | 'yellow'
-export type CupHalf = 'clear' | 'gray'
-export type Alliance = 'red' | 'blue'
 
-export const QUADRANTS: QuadrantId[] = ['top', 'right', 'bottom', 'left']
-
-/**
- * 象限的名字用**场地方向**，不用画面上下左右 —— 因为默认视角是朝西看的，
- * 画面上的上下左右跟场地方向对不上。
- *
- *   西 = 红近（红方自己的近处）、南 = 红远、东 = 蓝近、北 = 蓝远
- */
-export const QUADRANT_DIR: Record<QuadrantId, string> = {
-  left: '西',
-  bottom: '南',
-  right: '东',
-  top: '北',
-}
-
-export const QUADRANT_LABEL: Record<QuadrantId, string> = {
-  left: '西 · 红近',
-  bottom: '南 · 红远',
-  right: '东 · 蓝近',
-  top: '北 · 蓝远',
-}
-
-export const QUADRANT_ALLIANCE_TAG: Record<QuadrantId, string> = {
-  left: '红近',
-  bottom: '红远',
-  right: '蓝近',
-  top: '蓝远',
-}
-
-/** 象限 → Toggle（围栏每条边中点各一个 Toggle） */
-export const QUADRANT_TOGGLE: Record<QuadrantId, QuadrantId> = {
-  top: 'top',
-  right: 'right',
-  bottom: 'bottom',
-  left: 'left',
-}
-
-/** 象限的联盟色（由该象限内的联盟桩决定）：上/右 = 蓝，下/左 = 红 */
-export const QUADRANT_ALLIANCE: Record<QuadrantId, Alliance> = {
-  top: 'blue',
-  right: 'blue',
-  bottom: 'red',
-  left: 'red',
-}
+// 词表（颜色、区域名、零件名）单独放在 terms.ts —— 那边没有任何 import，
+// 这样 scoring.ts 也能在运行时 import 它（node 直接跑 .ts，不能有别名依赖）。
+import type { Alliance, CupHalf, PinColor, QuadrantId, ToggleState } from './terms'
+import { QUADRANT_ALLIANCE_TAG } from './terms'
+export type { Alliance, CupHalf, PinColor, QuadrantId, ToggleState }
+export {
+  COLORS,
+  QUADRANT_ALLIANCE_TAG,
+  QUADRANT_DIR,
+  QUADRANT_ALLIANCE,
+  TOGGLE_STATE_LABEL,
+  TOGGLE_STATE_COLOR,
+  PIN_COLOR_LABEL,
+  CUP_HALF_LABEL,
+} from './terms'
 
 // ─────────────────────────── 场地常量 ───────────────────────────
 
@@ -101,9 +67,9 @@ export interface GoalSpec {
   /** 绕竖直轴的朝向 (rad) */
   rotationY: number
   quadrant: QuadrantId | 'midfield'
-  /** 该桩归属的联盟（中立桩为 null） */
+  /** 该 goal 归属的联盟（中立 goal 为 null） */
   alliance: Alliance | null
-  /** 桩体高度 (mm) */
+  /** goal 本体高度 (mm) */
   height: number
   /** 底面八边形外接圆半径 (mm) */
   baseRadius: number
@@ -112,7 +78,7 @@ export interface GoalSpec {
   socket: SocketSpec
 }
 
-/** 场地 12 ft，桩位全部落在 25 in 网格上 */
+/** 场地 12 ft，goal 位全部落在 25 in 网格上 */
 function goal(
   id: string,
   variant: GoalVariant,
@@ -146,17 +112,17 @@ const a = 598.06
 const b = 1196.12
 
 export const GOALS: GoalSpec[] = [
-  // 中立矮桩 (5.8" = 146.5 mm)
+  // 中立矮 goal (5.8" = 146.5 mm)
   goal('g-n1', 'neutral-short', -a, b, 'top', null, 146.53),
   goal('g-n2', 'neutral-short', -b, a, 'left', null, 146.53),
   goal('g-n3', 'neutral-short', b, -a, 'right', null, 146.53),
   goal('g-n4', 'neutral-short', a, -b, 'bottom', null, 146.53),
-  // 中立高桩 (8.7" = 222.7 mm)，在中场
+  // 中立高 goal (8.7" = 222.7 mm)，在中场
   goal('g-center', 'neutral-tall', 0, 0, 'midfield', null, 222.73),
-  // 红方桩 (3.25" = 82.5 mm)
+  // 红方 goal (3.25" = 82.5 mm)
   goal('g-r1', 'alliance-red', -b, -a, 'left', 'red', 82.59),
   goal('g-r2', 'alliance-red', -a, -b, 'bottom', 'red', 82.59),
-  // 蓝方桩 (3.25" = 82.5 mm)
+  // 蓝方 goal (3.25" = 82.5 mm)
   goal('g-b1', 'alliance-blue', a, b, 'top', 'blue', 82.59),
   goal('g-b2', 'alliance-blue', b, a, 'right', 'blue', 82.59),
 ]
@@ -165,7 +131,25 @@ export const GOAL_BY_ID: Record<string, GoalSpec> = Object.fromEntries(
   GOALS.map((g) => [g.id, g]),
 )
 
-/** 象限 → 该象限里的两个桩 */
+/**
+ * goal 的统一叫法（手册中文版用的就是 goal：联队 goal / 中立 goal / 短 goal / 长 goal）：
+ *   「红近 · 红方 goal」「蓝远 · 中立 goal」「中场 · 中立高 goal」
+ */
+export function goalName(g: GoalSpec): string {
+  if (g.quadrant === 'midfield') return '中场 · 中立高 goal'
+  const region = QUADRANT_ALLIANCE_TAG[g.quadrant]
+  const kind =
+    g.alliance === 'red' ? '红方 goal' : g.alliance === 'blue' ? '蓝方 goal' : '中立 goal'
+  return `${region} · ${kind}`
+}
+
+/** goal 的类型徽章（不带区域名） */
+export function goalKind(g: GoalSpec): string {
+  if (g.quadrant === 'midfield') return '中立高 goal'
+  return g.alliance === 'red' ? '红方 goal' : g.alliance === 'blue' ? '蓝方 goal' : '中立 goal'
+}
+
+/** 该区域里的两个 goal */
 export const QUADRANT_GOALS: Record<QuadrantId, string[]> = {
   top: ['g-n1', 'g-b1'],
   right: ['g-b2', 'g-n3'],
@@ -234,19 +218,8 @@ export const PIN_VARIANTS: { id: string; label: string; halves: [PinColor, PinCo
 /** Cup = 透明半 + 不透明(灰)半 */
 export const CUP_VARIANT = { id: 'cup', label: '透明 / 灰', halves: ['clear', 'gray'] as [CupHalf, CupHalf] }
 
-// ─────────────────────────── 配色 ───────────────────────────
-
-export const COLORS = {
-  red: '#e4002b',
-  blue: '#00aeef',
-  yellow: '#ffd400',
-  gray: '#4a4a4a',
-  clear: '#dfe9f5',
-  field: '#8e8e8e',
-  tape: '#f4f4f4',
-  perimeter: '#262626',
-  neutralGoal: '#171717',
-} as const
+// 配色和词表都在 terms.ts（见文件头的说明），这里只 re-export：
+//   import { COLORS, ... } from '@/data/fieldSpec'  照旧能用
 
 // ─────────────────────────── 场地 JSON（CAD 导出）───────────────────────────
 
@@ -317,7 +290,7 @@ export async function loadFieldSpec(url = 'assets/field.json'): Promise<FieldJso
     const json = (await res.json()) as FieldJson
     if (!json.goals?.length) throw new Error('没有 goals')
 
-    // CAD 导出的 Goal 可能不全（早期版本少了 2 个中立矮桩），缺的就用兜底数据补齐
+    // CAD 导出的 Goal 可能不全（早期版本少了 2 个中立矮 goal），缺的就用兜底数据补齐
     const byId = new Map(json.goals.map((g) => [g.id, g]))
     const goals = GOALS.map((fb) => byId.get(fb.id) ?? fb)
     for (const g of json.goals) if (!goals.find((x) => x.id === g.id)) goals.push(g)

@@ -74,7 +74,7 @@ console.log('\n── 场景 2：同一个 Pin，把该象限 Toggle 设成红�
   const r = run({ 'g-n1': [pin('yellow', 'yellow')] }, toggles({ top: 'red' }))
   eq('红方 10 分（只有上半那半个黄端子）', r.red, 10)
   eq('蓝方 0 分', r.blue, 0)
-  eq('下半的理由写明被桩挡住', r.halves.some((h) => h.reason.includes('被桩挡住')), true)
+  eq('下半的理由写明被 goal 挡住', r.halves.some((h) => h.reason.includes('被 goal 挡住')), true)
 }
 
 console.log('\n── 场景 3：Toggle 设为蓝色 → 蓝方 10 分 ──')
@@ -206,7 +206,7 @@ console.log('\n── 摆放合法性：Pin 只能放 Cup 上或直接放桩上�
 {
   eq('空桩上放 Pin → 合法', checkPlacement('pin', []).ok, true)
   eq('空桩上放 Cup → 拒绝', checkPlacement('cup', []).ok, false)
-  eq('拒绝理由提到 Cup', checkPlacement('cup', []).reason.includes('Cup'), true)
+  eq('拒绝理由提到 cup', checkPlacement('cup', []).reason.includes('cup'), true)
   eq('Pin 上放 Cup → 合法', checkPlacement('cup', [pin('red', 'red')]).ok, true)
   eq('Pin 上放 Pin → 拒绝', checkPlacement('pin', [pin('red', 'red')]).ok, false)
   eq('Cup 上放 Pin → 合法', checkPlacement('pin', [pin('red', 'red'), cup('clear', 'gray')]).ok, true)

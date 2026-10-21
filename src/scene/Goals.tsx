@@ -145,7 +145,7 @@ export function Goal({
   const cad = asset?.single ?? null
   const cadTree = asset?.root ?? null
 
-  // 放置目标：罩住整个桩，登记到 sceneBridge 供拾取；也承担点击选中
+  // 放置目标：罩住整个 goal，登记到 sceneBridge 供拾取；也承担点击选中
   const dropRef = useRef<THREE.Mesh | null>(null)
   const registerDrop = useCallback((mesh: THREE.Mesh | null) => {
     if (dropRef.current) {
@@ -194,7 +194,7 @@ export function Goal({
         </mesh>
       )}
 
-      {/* 中立桩上的黄色花纹环（只有程序化几何才加，CAD 里自带花纹） */}
+      {/* 中立 goal 上的黄色花纹环（只有程序化几何才加，CAD 里自带花纹） */}
       {!cad && !cadTree && spec.variant.startsWith('neutral') && (
         <mesh position={[0, spec.height * 0.45, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[spec.baseRadius * 0.8, 5, 8, 40]} />
@@ -218,7 +218,7 @@ export function Goal({
         </mesh>
       )}
 
-      {/* 点击热区：贴着桩体形状的锥台（不高于桩顶，免得抢掉叠在上面的得分物的点击） */}
+      {/* 点击热区：贴着 goal 本体形状的锥台（不高于 goal 顶，免得抢掉叠在上面的得分物的点击） */}
       <mesh
         position={[0, spec.height / 2, 0]}
         userData={{ goalId: spec.id }}
@@ -239,7 +239,7 @@ export function Goal({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* 拖拽放置目标：罩住整个桩的一根隐形圆柱。**不带事件处理**，
+      {/* 拖拽放置目标：罩住整个 goal 的一根隐形圆柱。**不带事件处理**，
           否则它会抢在叠在上面的得分物之前被射线命中，导致点不中得分物。 */}
       <mesh ref={registerDrop} position={[0, pickHeight / 2, 0]} userData={{ goalId: spec.id }}>
         <cylinderGeometry args={[pickRadius, pickRadius, pickHeight, 16]} />
@@ -253,7 +253,7 @@ export function Goal({
           baseY={baseY}
           selected={selectedItemId === item.id}
           onPointerDown={(e) => {
-            // 阻止桩自身的 onPointerDown 抢走事件（否则会清掉刚选中的件）
+            // 阻止 goal 自身的 onPointerDown 抢走事件（否则会清掉刚选中的件）
             e.stopPropagation()
             selectGoal(spec.id)
             selectItem(item.id)

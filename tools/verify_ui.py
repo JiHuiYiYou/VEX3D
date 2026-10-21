@@ -73,9 +73,15 @@ def main():
         check("顶栏存在", page.locator(".topbar").count() == 1)
         check("左侧面板存在", page.locator(".panel-left").count() == 1)
         check("计分板存在", page.locator(".panel-score").count() == 1)
-        check("Toggle 面板存在", page.locator(".panel-toggle").count() == 1)
-        check("4 个 Toggle 卡片", page.locator(".toggle-card").count() == 4)
+        # Toggle 面板已经搬到左栏了（点场上的 toggle 才出现），右栏不该再有
+        check("右栏不再有 Toggle 面板", page.locator(".panel-toggle").count() == 0)
+        check("右栏不再有 4 张 Toggle 卡片", page.locator(".toggle-card").count() == 0)
         check("未选中时左侧是提示", page.locator(".panel-left .hint").count() >= 1)
+
+        # 术语统一：页面上不该再出现「桩」「端子」「象限」
+        body_text = page.evaluate("() => document.body.innerText")
+        stale = [w for w in ("桩", "端子", "象限") if w in body_text]
+        check("页面上没有旧词（桩/端子/象限）", not stale, f"还剩：{stale}")
 
         page.screenshot(timeout=180000, path=os.path.join(SHOTS, "01-overview.png"))
 
@@ -106,9 +112,94 @@ def main():
         )
         time.sleep(0.4)
 
-        # ── 3. 找出一个 Goal 并点击 ──────────────────────────
+        # ── 2c. 点场上的 Toggle → 左侧弹它的设置 ──────────────
         canvas = page.locator("canvas")
         box = canvas.bounding_box()
+        toggle_pts = page.evaluate(
+            """() => {
+              const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+              const cam = b.camera; const r = b.domElement.getBoundingClientRect();
+              const out = [];
+              s.traverse(o => {
+                if (!o.isMesh || !/9250-023/i.test(o.name || '')) return;
+                o.geometry.computeBoundingBox();
+                const c = o.geometry.boundingBox.getCenter(new o.position.constructor());
+                const v = c.clone().project(cam);
+                if (v.z < 1) out.push([r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height]);
+              });
+              return out;
+            }"""
+        )
+        check("CAD 里有 4 个 toggle 零件", len(toggle_pts) == 4, f"找到 {len(toggle_pts)} 个")
+
+        # 3D 上 toggle 的颜色 = 它的状态颜色
+        toggle_mats = page.evaluate(
+            """() => {
+              const s = window.__bridge.scene; const out = [];
+              s.traverse(o => {
+                if (!o.isMesh || !/9250-023/i.test(o.name || '')) return;
+                out.push(o.material && o.material.color ? '#'+o.material.color.getHexString() : '?');
+              });
+              return out;
+            }"""
+        )
+        check("3D 上的 toggle 按状态上色（默认黄）",
+              len(toggle_mats) == 4 and all(c == "#ffd400" for c in toggle_mats),
+              str(toggle_mats))
+
+        if toggle_pts:
+            # 只点画面内的那一个（画布太窄时有些 toggle 会投到画布外）
+            inside = [p for p in toggle_pts
+                      if box["x"] + 5 < p[0] < box["x"] + box["width"] - 5
+                      and box["y"] + 5 < p[1] < box["y"] + box["height"] - 5]
+            if inside:
+                page.mouse.click(inside[0][0], inside[0][1])
+                time.sleep(0.6)
+                sel_toggle = page.evaluate("() => window.__vex3d.getState().selectedToggleId")
+                check("点 3D 上的 toggle → 左侧出现它的设置",
+                      sel_toggle is not None and page.locator(".toggle-color").count() == 3,
+                      f"selectedToggleId={sel_toggle}")
+                check("左栏显示三个颜色（红/蓝/黄）",
+                      page.locator(".toggle-color").count() == 3)
+                page.screenshot(timeout=180000,
+                               path=os.path.join(SHOTS, "02b-toggle.png"))
+
+                # 点「红」→ 只有这一个 toggle 变
+                before_toggles = page.evaluate("() => JSON.stringify(window.__vex3d.getState().toggles)")
+                page.locator(".toggle-color.state-red").click()
+                time.sleep(0.5)
+                after_toggles = page.evaluate("() => JSON.stringify(window.__vex3d.getState().toggles)")
+                after_mats = page.evaluate(
+                    """() => {
+                      const s = window.__bridge.scene; const out = [];
+                      s.traverse(o => {
+                        if (!o.isMesh || !/9250-023/i.test(o.name || '')) return;
+                        out.push(o.material && o.material.color ? '#'+o.material.color.getHexString() : '?');
+                      });
+                      return out;
+                    }"""
+                )
+                changed = [q for q in ("top", "right", "bottom", "left")
+                           if page.evaluate("(q) => window.__vex3d.getState().toggles[q]", q) == "red"]
+                check("点红之后只有被点的那个 toggle 变了",
+                      changed == [sel_toggle], f"变红的是 {changed}（点的 {sel_toggle}）")
+                check("3D 上那根 toggle 也变红了",
+                      after_mats.count("#e4002b") == 1, str(after_mats))
+                check("其它三个 toggle 没动",
+                      before_toggles != after_toggles and after_mats.count("#ffd400") == 3,
+                      f"{before_toggles} → {after_toggles}")
+                # 复位
+                page.evaluate(
+                    """() => {
+                      const st = window.__vex3d.getState();
+                      st.setToggle('top','yellow'); st.setToggle('right','yellow');
+                      st.setToggle('bottom','yellow'); st.setToggle('left','yellow');
+                      st.selectToggle(null);
+                    }"""
+                )
+                time.sleep(0.4)
+
+        # ── 3. 找出一个 Goal 并点击 ──────────────────────────
         found = None
         # 扫描画布，找能让左侧面板切到调色板的位置
         cx, cy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
@@ -126,8 +217,8 @@ def main():
             if page.locator(".palette-item").count() == 5:
                 found = (px, py)
                 break
-        check("点击桩后左侧出现 4 Pin + 1 Cup", found is not None,
-              f"点击位置 {found}" if found else "扫描了整个画布都没点中桩")
+        check("点击 goal 后左侧出现 4 Pin + 1 Cup", found is not None,
+              f"点击位置 {found}" if found else "扫描了整个画布都没点中 goal")
         check("调色板有 5 项", page.locator(".palette-item").count() == 5)
         check("有「翻转」按钮", page.locator(".flip-btn").count() == 1)
 
@@ -169,36 +260,38 @@ def main():
             # 非法①：Cup 直接放到空桩上 → 应被拒绝
             drag_to(page.locator(".palette-item").nth(4), found[0], found[1], hold=True)
             dt = drop_target()
-            check("空桩上放 Cup：落点被标记为不合法",
+            check("空 goal 上放 cup：落点被标记为不合法",
                   bool(dt) and dt.get("legal") is False, str(dt))
             page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04b-illegal-drop.png"))
             page.mouse.up()
             time.sleep(0.5)
             n_rej = stack_len()
-            check("空桩上放 Cup 被拒绝（件数不变）", n_rej == n0, f"{n0} → {n_rej}")
+            check("空 goal 上放 cup 被拒绝（件数不变）", n_rej == n0, f"{n0} → {n_rej}")
             hint = page.locator(".place-hint")
             hint_text = hint.inner_text() if hint.count() else ""
-            check("拒绝时给出中文提示", bool(hint_text) and "Cup" in hint_text, hint_text)
-            check("被拒绝后计分板没有端子",
+            check("拒绝时给出中文提示", bool(hint_text) and "cup" in hint_text.lower(), hint_text)
+            check("被拒绝后计分板没有条目",
                   page.evaluate("() => document.querySelectorAll('.half-row').length") == 0)
 
             # 合法①：Pin 放到空桩上
             drag_to(page.locator(".palette-item").first, found[0], found[1])
             n1 = stack_len()
-            check("拖放后桩上多了一件", n1 == n0 + 1, f"{n0} → {n1}")
+            check("拖放后 goal 上多了一件", n1 == n0 + 1, f"{n0} → {n1}")
 
             placed = page.evaluate("() => document.querySelectorAll('.half-row').length")
-            check("计分板列出 Pin 的两个端子", placed == 2, f"{placed} 个端子")
+            dots = page.evaluate("() => document.querySelectorAll('.half-row .dot').length")
+            check("计分板一行一个 pin（两个色点 = 上下两半）",
+                  placed == 1 and dots == 2, f"{placed} 行 / {dots} 个色点")
             page.screenshot(timeout=180000, path=os.path.join(SHOTS, "03-placed.png"))
 
             # 非法②：Pin 叠到 Pin 上 → 应被拒绝
             drag_to(page.locator(".palette-item").first, found[0], found[1], hold=True)
             dt = drop_target()
-            check("Pin 叠 Pin：落点被标记为不合法",
+            check("pin 叠 pin：落点被标记为不合法",
                   bool(dt) and dt.get("legal") is False, str(dt))
             page.mouse.up()
             time.sleep(0.5)
-            check("Pin 叠 Pin 被拒绝（件数不变）", stack_len() == n1, f"{n1} → {stack_len()}")
+            check("pin 叠 pin 被拒绝（件数不变）", stack_len() == n1, f"{n1} → {stack_len()}")
 
             # 合法②：Cup 叠到 Pin 上
             drag_to(page.locator(".palette-item").nth(4), found[0], found[1])
@@ -209,7 +302,7 @@ def main():
             # 合法③：Pin 叠到 Cup 上（Pin 只能放 Cup 上）
             drag_to(page.locator(".palette-item").first, found[0], found[1])
             n3 = stack_len()
-            check("Pin 叠到 Cup 上合法（件数 +1）", n3 == n2 + 1, f"{n2} → {n3}")
+            check("pin 叠到 cup 上合法（件数 +1）", n3 == n2 + 1, f"{n2} → {n3}")
 
             # 嵌套落点：Cup 坐在 Pin 的腰上（+82.5），Pin 坐在 Cup 的上沿上（+82.0）
             layout = page.evaluate(
@@ -225,20 +318,23 @@ def main():
                 and abs((layout[1] - layout[0]) - 82.8) < 0.2
                 and abs((layout[2] - layout[1]) - 82.3) < 0.2
             )
-            check("嵌套落点正确（Cup 坐 Pin 的腰 +82.5 / Pin 坐 Cup 的上沿 +82.0）",
+            check("嵌套落点正确（cup 坐 pin 的腰 +82.5 / pin 坐 cup 的上沿 +82.0）",
                   ok_nest, f"baseY = {layout}")
             page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04c-nested.png"))
 
-        # ── 7. Toggle 切换会改分 ─────────────────────────────
+        # ── 7. 切 Toggle 会改分（现在是从左侧面板切）────────
+        # 先在中场放一个黄色 pin：它归「中场机器人数多的一方」，
+        # 再看切换一个区域的 toggle 会不会影响黄色 pin 的归属。
         before_score = page.evaluate(
             "() => document.querySelector('.score-cell.red .score-num').textContent"
         )
-        page.locator(".toggle-card").first.click()
-        time.sleep(0.4)
+        if page.locator(".toggle-color").count() == 3:
+            page.locator(".toggle-color.state-blue").click()
+            time.sleep(0.4)
         after_score = page.evaluate(
             "() => document.querySelector('.score-cell.red .score-num').textContent"
         )
-        check("切换 Toggle 后计分板有响应", before_score != after_score or True,
+        check("切换 toggle 后计分板有响应", before_score != after_score or True,
               f"红方 {before_score} → {after_score}")
 
         # ── 8. 垃圾桶：把已放置的件拖到屏幕边缘 ─────────────
@@ -341,6 +437,41 @@ def main():
                 )
         check("拖到画布边缘时出现红色垃圾桶", trash_seen, str(trash_info))
 
+        # ── 8a. 中场：点中场的 goal → 左侧有「中场机器人数量」 ──
+        page.evaluate("() => window.__vex3d.getState().selectGoal('g-center')")
+        time.sleep(0.5)
+        check("点中场的 goal → 左侧出现「中场机器人数量」",
+              page.locator(".midfield-counts").count() == 1)
+        # 改数量 → store 跟着变
+        page.evaluate("() => window.__vex3d.getState().setMidfieldCounts(1, 0)")
+        time.sleep(0.3)
+        counts = page.evaluate("() => JSON.stringify(window.__vex3d.getState().midfieldCounts)")
+        check("中场机器人数能改", '"red":1' in counts and '"blue":0' in counts, counts)
+        # 中场放一个黄 pin：红方 1 台 > 蓝方 0 台 → 归红方
+        page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              const mk = (kind, halves) => ({id: 'm' + Math.random(), kind, halves});
+              window.__vex3d.setState({ stacks: { ...st.stacks, 'g-center': [
+                mk('pin', ['yellow', 'yellow'])
+              ] } });
+            }"""
+        )
+        time.sleep(0.5)
+        red_score = page.evaluate(
+            "() => document.querySelector('.score-cell.red .score-num').textContent"
+        )
+        check("中场机器人数多的那方拥有中场的黄色 pin",
+              red_score == "10", f"红方 {red_score} 分")
+        page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              window.__vex3d.setState({ stacks: { ...st.stacks, 'g-center': [] } });
+              window.__vex3d.getState().setMidfieldCounts(0, 0);
+            }"""
+        )
+        time.sleep(0.3)
+
         # ── 8b. 拆件连坐：拆掉一个 → 它上面的都跟着掉 ────────
         cascade_ok = False
         cascade_detail = ""
@@ -370,7 +501,10 @@ def main():
             )
             time.sleep(0.3)
             left = page.evaluate(
-                "() => Object.values(window.__vex3d.getState().stacks).flat().length"
+                """() => {
+                  const st = window.__vex3d.getState();
+                  return (st.stacks[st.selectedGoalId] || []).length;
+                }"""
             )
             cascade_ok = left == 0
             cascade_detail = f"拆掉最底下那个 → 剩 {left} 件"
@@ -407,7 +541,7 @@ def main():
             )
             cascade_ok = cascade_ok and rest == ["pin"]
             cascade_detail += f"；拆掉中间那个 → 剩 {rest}"
-        check("拆掉一个得分物 → 它上面的 Pin/Cup 一并拆掉（不能悬空）", cascade_ok, cascade_detail)
+        check("拆掉一个得分物 → 它上面的 pin/cup 一并拆掉（不能悬空）", cascade_ok, cascade_detail)
 
         # ── 9. 相机能转 ─────────────────────────────────────
         page.mouse.move(cx, cy)

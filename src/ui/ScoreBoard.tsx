@@ -1,25 +1,63 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '@/state/store'
 import { scoreField } from '@/state/scoring'
-import { getFieldSpec, GOAL_BY_ID } from '@/data/fieldSpec'
+import { getFieldSpec, GOAL_BY_ID, PIN_COLOR_LABEL, goalName } from '@/data/fieldSpec'
+import type { HalfResult } from '@/state/scoring'
 
 export function useScores() {
   const stacks = useApp((s) => s.stacks)
   const toggles = useApp((s) => s.toggles)
+  const midfieldCounts = useApp((s) => s.midfieldCounts)
   return useMemo(() => {
     const spec = getFieldSpec()
-    return scoreField({ stacks, toggles, goals: spec.goals })
-  }, [stacks, toggles])
+    return scoreField({
+      stacks,
+      toggles,
+      goals: spec.goals,
+      midfieldCounts,
+    })
+  }, [stacks, toggles, midfieldCounts])
+}
+
+/** 一个 pin 的两半（聚成一行显示） */
+interface PinRow {
+  itemId: string
+  lower: HalfResult
+  upper: HalfResult
+  red: number
+  blue: number
+  blocked: boolean
 }
 
 export function ScoreBoard() {
   const scores = useScores()
   const [hover, setHover] = useState<string | null>(null)
 
+  /** 按 goal → pin 分组（一个 pin 一行，两个色点 = 上下两半） */
   const byGoal = useMemo(() => {
-    const map: Record<string, typeof scores.halves> = {}
+    const map: Record<string, PinRow[]> = {}
     for (const h of scores.halves) {
-      ;(map[h.goalId] ??= []).push(h)
+      ;(map[h.goalId] ??= [])
+      const rows = map[h.goalId]
+      let row = rows.find((r) => r.itemId === h.itemId)
+      if (!row) {
+        row = {
+          itemId: h.itemId,
+          lower: h,
+          upper: h,
+          red: 0,
+          blue: 0,
+          blocked: false,
+        }
+        rows.push(row)
+      }
+      if (h.halfIndex === 0) row.lower = h
+      else row.upper = h
+      if (h.scored) {
+        if (h.alliance === 'red') row.red += h.points
+        else row.blue += h.points
+      }
+      if (h.covered && !h.scored) row.blocked = true
     }
     return map
   }, [scores])
@@ -41,54 +79,62 @@ export function ScoreBoard() {
       </div>
 
       <div className="score-note">
-        联盟色 Pin 半 5 分 · 被拥有的黄色 Pin 半 10 分
+        联盟色 pin 半 5 分 · 被拥有的黄色 pin 半 10 分
         {scores.blocked > 0 && (
           <>
             <br />
-            <span className="warn">⚠ {scores.blocked} 个端子被不透明杯遮挡，不得分</span>
+            <span className="warn">⚠ {scores.blocked} 个 pin 半被挡住，不得分</span>
           </>
         )}
       </div>
 
       <div className="score-list">
-        {Object.entries(byGoal).map(([goalId, halves]) => {
+        {Object.entries(byGoal).map(([goalId, rows]) => {
           const g = GOAL_BY_ID[goalId]
-          const red = halves.filter((h) => h.alliance === 'red').reduce((s, h) => s + h.points, 0)
-          const blue = halves.filter((h) => h.alliance === 'blue').reduce((s, h) => s + h.points, 0)
+          const red = rows.reduce((s, r) => s + r.red, 0)
+          const blue = rows.reduce((s, r) => s + r.blue, 0)
           return (
             <div key={goalId} className="score-goal">
               <div className="score-goal-head">
-                <span>{g?.id ?? goalId}</span>
+                <span title={g ? goalName(g) : goalId}>{g ? goalName(g) : goalId}</span>
                 <span>
                   <b className="red-txt">{red}</b> / <b className="blue-txt">{blue}</b>
                 </span>
               </div>
-              {halves.map((h) => {
-                const key = `${h.itemId}-${h.halfIndex}`
+              {rows.map((row) => {
+                const key = row.itemId
+                const reasons = [row.lower.reason, row.upper.reason]
                 return (
                   <div
                     key={key}
-                    className={`half-row ${h.scored ? '' : 'blocked'}`}
+                    className={`half-row ${row.blocked ? 'blocked' : ''}`}
                     onMouseEnter={() => setHover(key)}
                     onMouseLeave={() => setHover(null)}
-                    title={h.reason}
+                    title={reasons.join('\n')}
                   >
-                    <i className={`dot ${h.color}`} />
+                    <i className={`dot ${row.lower.color}`} />
+                    <i className={`dot ${row.upper.color}`} />
                     <span className="half-name">
-                      {h.color}
-                      {h.halfIndex === 0 ? '（下）' : '（上）'}
+                      {PIN_COLOR_LABEL[row.lower.color]} / {PIN_COLOR_LABEL[row.upper.color]}
                     </span>
                     <span className="half-pts">
-                      {h.scored ? `+${h.points} ${h.alliance === 'red' ? '红' : '蓝'}` : '0'}
+                      <b className="red-txt">{row.red}</b> / <b className="blue-txt">{row.blue}</b>
                     </span>
-                    {hover === key && <div className="reason">{h.reason}</div>}
+                    {hover === key && (
+                      <div className="reason">
+                        <div>下：{reasons[0]}</div>
+                        <div>上：{reasons[1]}</div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
             </div>
           )
         })}
-        {Object.keys(byGoal).length === 0 && <div className="hint small">还没有放置任何得分物。</div>}
+        {Object.keys(byGoal).length === 0 && (
+          <div className="hint small">还没有放置任何得分物。</div>
+        )}
       </div>
     </section>
   )

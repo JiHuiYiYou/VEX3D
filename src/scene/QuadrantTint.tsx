@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { useApp } from '@/state/store'
-import { COLORS, QUADRANT_DIR, type QuadrantId, type ToggleState } from '@/data/fieldSpec'
+import { TOGGLE_STATE_COLOR, type QuadrantId, type ToggleState } from '@/data/fieldSpec'
 
 /**
- * 象限染色：把每个象限（四分之一场地）按它那个 **Toggle 的当前状态**染色，
- * 一眼就能看出「这个象限的黄色 Pin 现在归谁」。
+ * 区域染色：把每个区域（四分之一场地）按它那个 **Toggle 的当前状态**染色，
+ * 一眼就能看出「这个区域的黄色 Pin 现在归谁」。
  *
- * 象限的边界用的是场地里真实的几何：
+ * 区域的边界用的是场地里真实的几何：
  *  · 外角 = 垫子角 (±1804)
  *  · 胶带臂的内端 = 中场菱形那条边的中点 (±299)
  *  · 中场菱形的顶点 (±598)
@@ -17,7 +17,7 @@ const MAT_HALF = 1804
 const DIAMOND_VERTEX = 598
 const ARM_INNER = 299
 
-/** 每个象限的多边形（场地坐标 X/Y，左上→右下绕一圈） */
+/** 每个区域的多边形（场地坐标 X/Y，左上→右下绕一圈） */
 const POLY: Record<QuadrantId, [number, number][]> = {
   left: [
     [-MAT_HALF, MAT_HALF],
@@ -49,11 +49,7 @@ const POLY: Record<QuadrantId, [number, number][]> = {
   ],
 }
 
-const STATE_COLOR: Record<ToggleState, string> = {
-  red: COLORS.red,
-  blue: COLORS.blue,
-  yellow: COLORS.yellow,
-}
+const STATE_COLOR = TOGGLE_STATE_COLOR
 
 /** 黄色是「常态」（谁都不拥有），染得淡一点；红/蓝才是要看的，一眼就要跳出来 */
 const STATE_ALPHA: Record<ToggleState, number> = {
@@ -117,5 +113,3 @@ export function QuadrantTint() {
     </group>
   )
 }
-
-export { QUADRANT_DIR }

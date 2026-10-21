@@ -96,25 +96,59 @@ CAD 已确认：零件是 `276-9250-023_GREY`，**长 656.2 mm**、宽 51.59、�
   摆放时「尖端朝下」= 旋转 0、位置 baseY+h；「尖端朝上」= 绕 X 轴 180°、位置 baseY+h−overlap。
   **Cup 的两半要反过来拼**（口对口），见 `stackLayout.ts` 的 `halfTransform`。
 
+## 统一话术（全 app 只用这一套）
+
+| 概念 | 叫法 | 别再叫 |
+|---|---|---|
+| 得分物 | **pin** / **cup** | 端子、半体（UI 里） |
+| pin 的两半 | **pin 上半 / pin 下半** | 端子 |
+| 场上的 9 个桩 | **goal**（红方 goal / 蓝方 goal / 中立 goal / 中立高 goal） | 桩 |
+| 四个区域 | **红近 / 红远 / 蓝近 / 蓝远** | 象限、上象限、西·红近 |
+| 围栏上的开关 | **toggle** | Toggle（大小写随意，但别跟中文混） |
+
+- 词表放在 **`src/data/terms.ts`**（不 import 任何东西）——
+  因为 `src/state/scoring.ts` 要能被 `node tools/test_scoring.ts` 直接加载，
+  那边不能用别名 `'@/...'` 运行时 import。`fieldSpec.ts` 再把它 re-export 出去。
+- 区域的「近/远」是相对**该联盟自己**说的：红方的近端在西侧 → 西=红近、南=红远、
+  东=蓝近、北=蓝远。`QUADRANT_ALLIANCE_TAG` 就是这张表。
+
 ## 视角约定
 
 - **按钮名 = 镜头朝着的方向**（不是镜头站在哪一边）。
 - 默认视角（45°）和「正西」都**朝西看** —— 相机在东侧（蓝方），画面左边是南、右边是北。
 - 俯视图保持「北在上」。
 
-## 象限染色
+## 区域染色 + Toggle 的颜色
 
-每个象限（四分之一场地）按它那个 **Toggle 的当前状态**染色，一眼看出这个象限的黄色 Pin 归谁：
-红 / 蓝 / 黄。Toggle 面板里有「象限染色」开关，鼠标悬停某张卡片会加深那个象限。
+每个区域（四分之一场地）按它那个 **toggle 的当前状态**染色，一眼看出这个区域的黄色 pin 归谁：
+红 / 蓝 / 黄。左边面板（选中某个 toggle 时）有「区域染色」开关。
 
 染色块的边界用的是场地真实几何：外角（±1804 垫子角）→ 胶带臂内端（±299）→ 中场菱形顶点（±598），
 所以正好落在两条对角胶带臂之间，不会盖住胶带。
 
+**场上的 toggle 本体也有颜色**（红 / 蓝 / 黄）：
+
+- **CAD 路径（常态）**：4 个 toggle 是 `field.glb` 里的静态零件 `276-9250-023_GREY`，
+  4 个**同名** → 只能靠**位置**认是哪个区域：`bakeRoot` 把变换烘进几何了，
+  包围盒中心就在 three 系里 —— `|x| > |z|` → 东/西（按 x 正负），否则 → 南/北（z<0 是北）。
+  上色在 `src/scene/CadField.tsx` 的一个 `useEffect` 里做，**必须改 clone 上的 mesh**
+  （`clone(true)` 复制的是材质引用，在 root 上换 material 不影响已建好的 clone）。
+- **程序化兜底路径**：`src/scene/Toggles.tsx` 直接按状态上色。
+
+## Toggle 的交互：点它 → 左边弹设置
+
+- 3D 里的 toggle 零件**没有事件处理**，R3F 就不会去射线检测它 → 看不见也点不着。
+  所以另有一层**隐形点击代理**（`src/scene/ToggleHandles.tsx`，一直挂载）。
+- 点中 → `selectToggle(区域)` → **左侧面板**换成那个 toggle 的设置
+  （三个大色块按钮 红 / 蓝 / 黄，**直接设值**不是循环）。
+  左边一次只显示一样东西：选 toggle 会收起 goal 调色板，选 goal 会收起 toggle 面板。
+- 右栏只剩 **实时计分 + 规则说明**。
+
 ## Toggle 的 3 个状态（没有第四个「中立」）
 
 手册 `<SC4>` 只承认 **红 / 蓝 / 黄** 三个有效朝向；没就位（不是有效朝向）按规则同样不得分，
-所以 UI 里**不单拎一个「中立」状态**出来 —— 卡片循环 红 → 蓝 → 黄，
-`ToggleState = 'red' | 'blue' | 'yellow'`（`src/data/fieldSpec.ts`）。
+所以 UI 里**不单拎一个「中立」状态**出来，
+`ToggleState = 'red' | 'blue' | 'yellow'`（`src/data/terms.ts`）。
 
 ## 删除手势：四周红光 + 红色垃圾桶
 
@@ -139,12 +173,14 @@ tools/               离线 Python 管线（OCP）+ 验证脚本
   verify_ui.py       Playwright 端到端验证
 public/assets/       生成的资产（不入库）
 src/
+  data/terms.ts      ★ 统一词表（颜色 / 区域名 / 零件名），不 import 任何东西
   data/fieldSpec.ts  场地规格 + 坐标系换算 + 兜底几何
   state/scoring.ts   ★ 计分引擎（全部规则逻辑都在这一个文件里）
   state/store.ts     zustand store
   state/drag.ts      拖拽指针状态（放在 React 之外，避免每帧重渲染）
-  scene/             R3F 场景：场地 / Goal / 得分物 / Toggle / 拖拽幽灵件
-  ui/                左侧调色板、计分板、Toggle 面板、规则说明、垃圾桶
+  scene/             R3F 场景：场地 / goal / 得分物 / toggle / 拖拽幽灵件
+  scene/stackLayout.ts ★ 堆叠几何：半体摆放 + 嵌套落点（3D / 幽灵件 / 测试共用）
+  ui/                左侧面板（调色板 / toggle 设置）、计分板、规则说明、垃圾桶
 ```
 
 ## 关键约定
@@ -175,16 +211,18 @@ src/
   有嵌套；一个 Cup 半体里最多放 1 个 Pin。
 - `<SC3>`：端子 **嵌在 Cup 的透明半体里** 或 **未被 Cup 覆盖** 时计分；
   被不透明（灰）杯挡住不计分。一个 placed 的 Pin 有 1 个或 2 个得分的端子。
-- `<SC3> a/b/c` + 中文手册 图 SC5-1/2：**按端子自身颜色判联盟**——红端子→红方，
-  蓝端子→蓝方，黄端子→拥有方。**联盟桩的颜色不改变端子的归属**。
-- `<SC5> a`：象限内的黄色 Pin 归该象限 Toggle 的颜色；Toggle 设为黄色（或没就位）则不得分。
-- `<SC5> b`：中场高桩里的黄色 Pin 归中场机器人数量多的一方，相等则都不拥有。
-- `<SG9>/<SG10>`：不能碰/取走对方联盟桩里的得分物。
-- **Goal 也挡分（本工具采用的解读）**：直接插在桩孔里的那个 Pin，**下半整个埋在 socket 里 → 不计分**。
-  由 `scoring.ts` 的 `GOAL_COVERS_PIN_LOWER` 控制（默认 `true`）。
-  ⚠️ **官方手册图 SC5-1/2 是相反的**：中间板（Toggle=蓝）里插在桩里的黄半明确标 **+10**，
-  左板（Toggle=黄）同一个件标 +0（只差 Toggle 颜色）→ 按手册这半是**计分**的；
-  `<SC3>` 原文也只提 Cup、不提 Goal。要切回手册口径把那个常量改成 `false` 即可。
+- `<SC3> a/b/c` + 中文手册 图 SC5-1/2：**按 pin 半自身的颜色判联盟**——红半→红方，
+  蓝半→蓝方，黄半→拥有方。**联盟 goal 的颜色不改变归属**。
+- `<SC5> a`：区域内的黄色 pin 归该区域 toggle 的颜色；toggle 设为黄色（或没就位）则不得分。
+- `<SC5> b`：中场高 goal 里的黄色 pin 归**中场机器人数量多的一方**，相等则都不拥有。
+  → 左侧面板选中中场 goal 时有一组「中场机器人数量」计数器（`midfieldCounts`），
+  引擎的 `scoreField({midfieldCounts})` 早就支持，只是以前没有 UI 入口。
+- `<SG9>/<SG10>`：不能碰/取走对方联盟 goal 里的得分物。
+- **goal 也挡分（本工具采用的解读）**：直接插在 goal 孔里的那个 pin，
+  **下半整个埋在 socket 里 → 不计分**。由 `scoring.ts` 的 `GOAL_COVERS_PIN_LOWER` 控制（默认 `true`）。
+  ⚠️ **官方手册图 SC5-1/2 是相反的**：中间板（toggle=蓝）里插在 goal 里的黄半明确标 **+10**，
+  左板（toggle=黄）同一个件标 +0（只差 toggle 颜色）→ 按手册这半是**计分**的；
+  `<SC3>` 原文也只提 cup、不提 goal。要切回手册口径把那个常量改成 `false` 即可。
 
 ### 摆放规则（用户给定口径，不是手册原文）
 
@@ -192,16 +230,16 @@ src/
 Goal ──▶ Pin ──▶ Cup ──▶ Pin ──▶ Cup …
 ```
 
-- **Pin 只能放在 Cup 上，或直接放在 Goal 上**（作为摞的最底下一个）。
-- **Cup 只能放在 Pin 上**。
-- Pin 压 Pin、Cup 压 Cup、Cup 放 Goal → **非法**：UI 直接拒绝（`placeItem` 返回 false），
+- **pin 只能放在 cup 上，或直接放在 goal 上**（作为摞的最底下一个）。
+- **cup 只能放在 pin 上**。
+- pin 压 pin、cup 压 cup、cup 放 goal → **非法**：UI 直接拒绝（`placeItem` 返回 false），
   并弹一句中文提示（`src/ui/PlaceHint.tsx`）；拖拽时目标不高亮、幽灵染红。
 - 判定函数在 `src/state/scoring.ts` 的 `checkPlacement`（只能 type-only import，因为
   `node tools/test_scoring.ts` 直接加载那个文件）。
 
 ### 拆卸的连坐规则
 
-得分物**不能悬空**：拆掉一个，**它上面的 Pin / Cup 一并拆掉**（`store.removeItem` 只保留
+得分物**不能悬空**：拆掉一个，**它上面的 pin / cup 一并拆掉**（`store.removeItem` 只保留
 被拆那个**下面**的那些）。垃圾桶删除、Delete 键都走这里。
 
 > 这跟「叠放规则」是配套的：既然 Cup 只能放在 Pin 上、Pin 只能放在 Cup 或桩上，

@@ -55,7 +55,7 @@ export function DragGhost() {
       x = gx
       z = gy
       if (illegal) {
-        // 非法叠放：不吸附，悬在桩上方等着被拒绝
+        // 非法叠放：不吸附，悬在 goal 上方等着被拒绝
         y = goal.socket.z + 90
       } else {
         // ★ 吸附到这个摞的落点（按嵌套关系算，不是 socket 顶）

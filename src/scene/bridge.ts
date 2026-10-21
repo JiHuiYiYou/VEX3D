@@ -34,7 +34,7 @@ export type ViewPreset = 'iso' | 'top' | 'west' | 'low'
  *
  * 命名约定：**按钮名 = 镜头朝着的方向**（不是镜头站在哪一边）。
  * 默认视角和「正西」都朝**西**看 —— 相机在东侧（蓝方），画面左边是南、右边是北。
- * 场地方向 ↔ 象限：东=蓝近、北=蓝远、南=红远、西=红近。
+ * 场地方向 ↔ 区域：东=蓝近、北=蓝远、南=红远、西=红近。
  */
 export function applyView(preset: ViewPreset) {
   const { camera, controls, invalidate } = sceneBridge
@@ -90,7 +90,7 @@ if (import.meta.env.DEV) {
  * 屏幕坐标 → 命中哪个 Goal。
  *
  * 同时对 **Goal 实体网格**和**放置目标柱**做射线：取最近的一个命中。
- * 只用柱子的话，用户的指针落在桩体较高处就会脱靶；加上实体网格后「指哪打哪」。
+ * 只用柱子的话，用户的指针落在 goal 本体较高处就会脱靶；加上实体网格后「指哪打哪」。
  */
 export function pickDropTarget(clientX: number, clientY: number): THREE.Object3D | null {
   const { camera, domElement, raycaster, pointer } = sceneBridge

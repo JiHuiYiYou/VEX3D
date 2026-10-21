@@ -3,6 +3,31 @@ import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import { bakeRoot, loadGlb } from './assets'
 import { materialFor } from './materials'
+import { useApp } from '@/state/store'
+import { COLORS } from '@/data/fieldSpec'
+import type { QuadrantId, ToggleState } from '@/data/fieldSpec'
+
+/** 围栏上那 4 根 toggle 条的材质（按状态换色） */
+const TOGGLE_MATERIALS: Record<ToggleState, THREE.Material> = {
+  red: new THREE.MeshStandardMaterial({
+    color: COLORS.red,
+    roughness: 0.5,
+    emissive: COLORS.red,
+    emissiveIntensity: 0.2,
+  }),
+  blue: new THREE.MeshStandardMaterial({
+    color: COLORS.blue,
+    roughness: 0.5,
+    emissive: COLORS.blue,
+    emissiveIntensity: 0.2,
+  }),
+  yellow: new THREE.MeshStandardMaterial({
+    color: COLORS.yellow,
+    roughness: 0.5,
+    emissive: COLORS.yellow,
+    emissiveIntensity: 0.12,
+  }),
+}
 
 /**
  * 官方 CAD 导出的静态场地（field.glb）。
@@ -19,6 +44,7 @@ import { materialFor } from './materials'
 export function CadField({ onLoaded }: { onLoaded?: (ok: boolean) => void }) {
   const [root, setRoot] = useState<THREE.Object3D | null>(null)
   const { invalidate } = useThree()
+  const toggles = useApp((s) => s.toggles)
 
   useEffect(() => {
     let alive = true
@@ -74,6 +100,45 @@ export function CadField({ onLoaded }: { onLoaded?: (ok: boolean) => void }) {
   }, [invalidate, onLoaded])
 
   const clone = useMemo(() => (root ? root.clone(true) : null), [root])
+
+  /**
+   * 给围栏上那 4 根 toggle 条按状态上色。
+   *
+   * CAD 里 4 个 toggle 零件**同名**（`276-9250-023_GREY`），只能靠**位置**区分是哪个区域：
+   * `bakeRoot` 把变换烘进几何了，所以包围盒中心就在 three 系里 ——
+   * `|x| > |z|` → 东/西（按 x 正负），否则 → 南/北（z < 0 是北）。
+   *
+   * 注意要改 **clone** 上的 mesh：`clone(true)` 复制的是材质引用，
+   * 在 root 上换 material 不会影响已经建好的 clone。
+   */
+  useEffect(() => {
+    if (!clone) return
+    let found = 0
+    clone.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (!m.isMesh || !/9250-023/i.test(o.name || '')) return
+      m.geometry.computeBoundingBox()
+      const c = m.geometry.boundingBox?.getCenter(new THREE.Vector3())
+      if (!c) return
+      const q: QuadrantId =
+        Math.abs(c.x) > Math.abs(c.z)
+          ? c.x > 0
+            ? 'right'
+            : 'left'
+          : c.z < 0
+            ? 'top'
+            : 'bottom'
+      m.material = TOGGLE_MATERIALS[toggles[q] ?? 'yellow']
+      found++
+    })
+    if (found !== 4) {
+      console.warn(
+        `[assets] field.glb 里只找到 ${found} 个 toggle 零件（应为 4），CAD 侧可能改了零件名`,
+      )
+    }
+    invalidate()
+  }, [clone, toggles, invalidate])
+
   if (!clone) return null
   return <primitive object={clone} />
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { QuadrantId, ToggleState } from '@/data/fieldSpec'
-import { PIN_VARIANTS, CUP_VARIANT, GOALS, QUADRANT_TOGGLE } from '@/data/fieldSpec'
+import { PIN_VARIANTS, CUP_VARIANT, GOALS } from '@/data/fieldSpec'
 import { checkPlacement } from './scoring'
 import type { StackItem } from './scoring'
 
@@ -18,17 +18,24 @@ export const QUALITY_LABEL: Record<Quality, string> = {
 }
 
 export interface AppState {
-  /** 每个桩上的堆栈，数组顺序 = 自下而上 */
+  /** 每个 goal 上的堆栈，数组顺序 = 自下而上 */
   stacks: Record<string, StackItem[]>
   /** 4 个 Toggle 的状态 */
   toggles: Record<QuadrantId, ToggleState>
 
-  /** 当前选中的桩（非空 = 编辑模式，左侧面板显示调色板） */
+  /** 当前选中的 goal（非空 = 编辑模式，左侧面板显示调色板） */
   selectedGoalId: string | null
+  /** 当前选中的 toggle（非空 = 左侧面板显示那个 toggle 的设置） */
+  selectedToggleId: QuadrantId | null
   /** 当前选中的已放置得分物 */
   selectedItemId: string | null
   /** 左侧面板的「翻转」总开关 */
   paletteFlipped: boolean
+  /**
+   * 赛局结束时**中场**里的机器人数量（`<SC5>b`：中场的黄色 pin 归数量多的一方）。
+   * 默认 0 / 0 = 双方都不拥有。
+   */
+  midfieldCounts: { red: number; blue: number }
 
   /** 正在拖拽的东西 */
   dragging: DragPayload | null
@@ -45,14 +52,18 @@ export interface AppState {
   placeError: { goalId: string; reason: string; at: number } | null
   /** 画质 */
   quality: Quality
-  /** 是否把象限按 Toggle 状态染色 */
+  /** 是否把区域按 Toggle 状态染色 */
   showQuadrantTint: boolean
-  /** 鼠标悬停的象限（高亮用） */
+  /** 鼠标悬停的区域（高亮用） */
   hoverQuadrant: QuadrantId | null
 
   // ── actions ──
   selectGoal: (id: string | null) => void
+  /** 选中一个 toggle（左侧面板切到那个 toggle 的设置），与选 goal 互斥 */
+  selectToggle: (id: QuadrantId | null) => void
   selectItem: (id: string | null) => void
+  /** 设置赛局结束时中场的机器人数量 */
+  setMidfieldCounts: (red: number, blue: number) => void
   togglePaletteFlip: () => void
   /** 放置（非法叠放会被拒绝，返回 false 并写 placeError） */
   placeItem: (goalId: string, item: StackItem) => boolean
@@ -79,7 +90,7 @@ const TOGGLE_CYCLE: ToggleState[] = ['red', 'blue', 'yellow']
 
 /**
  * Toggle 只有 **3 个有效朝向**：红 / 蓝 / 黄（手册 <SC4>）。
- * 黄色 = 「谁都不拥有该象限的黄色 Pin」；现场照片里场上的 4 个 Toggle 默认就是黄的。
+ * 黄色 = 「谁都不拥有该区域的黄色 Pin」；现场照片里场上的 4 个 Toggle 默认就是黄的。
  * 没就位（不是有效朝向）按规则同样不得分，所以不再单拎一个「中立」状态出来。
  */
 const initialToggles = (): Record<QuadrantId, ToggleState> => ({
@@ -100,8 +111,10 @@ export const useApp = create<AppState>((set, get) => ({
   toggles: initialToggles(),
 
   selectedGoalId: null,
+  selectedToggleId: null,
   selectedItemId: null,
   paletteFlipped: false,
+  midfieldCounts: { red: 0, blue: 0 },
 
   dragging: null,
   hoverGoalId: null,
@@ -112,13 +125,26 @@ export const useApp = create<AppState>((set, get) => ({
   showQuadrantTint: true,
   hoverQuadrant: null,
 
+  /** 选 goal：同时收起 toggle 面板（左边一次只显示一样东西） */
   selectGoal: (id) =>
     set((s) => ({
       selectedGoalId: id,
+      selectedToggleId: null,
       selectedItemId: id === null ? null : s.selectedItemId,
     })),
 
+  /** 选 toggle：同时收起 goal 调色板 */
+  selectToggle: (id) =>
+    set({
+      selectedToggleId: id,
+      selectedGoalId: null,
+      selectedItemId: null,
+    }),
+
   selectItem: (id) => set({ selectedItemId: id }),
+
+  setMidfieldCounts: (red, blue) =>
+    set({ midfieldCounts: { red: Math.max(0, red), blue: Math.max(0, blue) } }),
 
   togglePaletteFlip: () => set((s) => ({ paletteFlipped: !s.paletteFlipped })),
 
@@ -237,8 +263,10 @@ export const useApp = create<AppState>((set, get) => ({
       stacks: {},
       toggles: initialToggles(),
       selectedGoalId: null,
+      selectedToggleId: null,
       selectedItemId: null,
       paletteFlipped: false,
+      midfieldCounts: { red: 0, blue: 0 },
       dragging: null,
       hoverGoalId: null,
       overTrash: false,
@@ -268,10 +296,6 @@ export function makePaletteItem(variantId: string, flipped: boolean): StackItem 
   return null
 }
 
-/** 象限 → 该象限的 Toggle（当前实现里一一对应） */
-export function toggleOfQuadrant(q: QuadrantId): QuadrantId {
-  return QUADRANT_TOGGLE[q]
-}
-
+/** 区域 → 该区域的 Toggle（当前实现里一一对应） */
 /** 空栈初始化 */
 export const EMPTY_STACKS: Record<string, StackItem[]> = Object.fromEntries(GOALS.map((g) => [g.id, []]))

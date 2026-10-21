@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { FieldScene } from './scene/FieldScene'
 import { LeftPalette } from './ui/LeftPalette'
 import { ScoreBoard } from './ui/ScoreBoard'
-import { TogglePanel } from './ui/TogglePanel'
 import { TrashZone } from './ui/TrashZone'
 import { PlaceHint } from './ui/PlaceHint'
 import { TopBar } from './ui/TopBar'
@@ -25,6 +24,7 @@ export default function App() {
       const st = useApp.getState()
       if (e.key === 'Escape') {
         st.selectGoal(null)
+        st.selectToggle(null)
         st.selectItem(null)
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -55,7 +55,6 @@ export default function App() {
         </div>
         <div className="right-col">
           <ScoreBoard />
-          <TogglePanel />
           <RulesDrawer />
         </div>
       </div>
