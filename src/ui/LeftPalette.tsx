@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useApp, makePaletteItem } from '@/state/store'
-import { PIN_VARIANTS, CUP_VARIANT, COLORS, GOAL_BY_ID, goalKind, goalName } from '@/data/fieldSpec'
+import { PIN_VARIANTS, CUP_VARIANTS, COLORS, GOAL_BY_ID, goalKind, goalName } from '@/data/fieldSpec'
 import { ToggleView } from './ToggleView'
 
 const HEX: Record<string, string> = {
@@ -133,8 +133,12 @@ export function LeftPalette() {
             </div>
           )}
 
-          <button className="flip-btn" onClick={togglePaletteFlip}>
-            翻转 {flipped ? '（已翻转）' : ''}
+          <button
+            className="flip-btn"
+            onClick={togglePaletteFlip}
+            title="把 4 种 pin 的上下两半对调（cup 的正反是下面两个独立选项，不受这个开关影响）"
+          >
+            翻转 pin {flipped ? '（已翻转）' : ''}
           </button>
 
           <div className="palette">
@@ -150,15 +154,18 @@ export function LeftPalette() {
                 <div className="palette-label">{v.label}</div>
               </div>
             ))}
-            <div
-              className="palette-item"
-              onPointerDown={startDrag(CUP_VARIANT.id)}
-              onClick={() => placeOnSelectedGoal(CUP_VARIANT.id)}
-              title={title('透明 / 灰')}
-            >
-              <CupIcon halves={flip(CUP_VARIANT.halves)} />
-              <div className="palette-label">透明 / 灰</div>
-            </div>
+            {CUP_VARIANTS.map((c) => (
+              <div
+                key={c.id}
+                className="palette-item"
+                onPointerDown={startDrag(c.id)}
+                onClick={() => placeOnSelectedGoal(c.id)}
+                title={title(`${c.label}（cup ${c.id === 'cup' ? '正' : '反'}）`)}
+              >
+                <CupIcon halves={c.halves} />
+                <div className="palette-label">{c.label}</div>
+              </div>
+            ))}
           </div>
 
           {/* 中场：黄色 pin 归「中场机器人数多的一方」（<SC5>b） */}

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { QuadrantId, ToggleState } from '@/data/fieldSpec'
-import { PIN_VARIANTS, CUP_VARIANT, GOALS } from '@/data/fieldSpec'
+import { PIN_VARIANTS, CUP_VARIANTS, GOALS } from '@/data/fieldSpec'
 import { checkPlacement } from './scoring'
 import type { StackItem } from './scoring'
 
@@ -280,18 +280,22 @@ if (import.meta.env.DEV) {
   ;(window as unknown as { __vex3d?: typeof useApp }).__vex3d = useApp
 }
 
-/** 从左侧面板生成一个待放置的件（受「翻转」开关影响） */
+/**
+ * 从左侧面板生成一个待放置的件。
+ *
+ * · **pin** 受「翻转」开关影响（上下两半对调）。
+ * · **cup 的正反是两个独立选项**（`CUP_VARIANTS`），不受「翻转」开关影响 ——
+ *   谁能罩住谁、罩住的是哪一半全看朝向，所以摆件时直接选朝向。
+ */
 export function makePaletteItem(variantId: string, flipped: boolean): StackItem | null {
   const pin = PIN_VARIANTS.find((p) => p.id === variantId)
   if (pin) {
     const halves = (flipped ? [pin.halves[1], pin.halves[0]] : pin.halves) as [typeof pin.halves[0], typeof pin.halves[1]]
     return { id: newId('pin'), kind: 'pin', halves }
   }
-  if (variantId === CUP_VARIANT.id) {
-    const halves = (flipped
-      ? [CUP_VARIANT.halves[1], CUP_VARIANT.halves[0]]
-      : CUP_VARIANT.halves) as [typeof CUP_VARIANT.halves[0], typeof CUP_VARIANT.halves[1]]
-    return { id: newId('cup'), kind: 'cup', halves }
+  const cup = CUP_VARIANTS.find((c) => c.id === variantId)
+  if (cup) {
+    return { id: newId('cup'), kind: 'cup', halves: [cup.halves[0], cup.halves[1]] }
   }
   return null
 }

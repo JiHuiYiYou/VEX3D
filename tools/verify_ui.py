@@ -221,19 +221,23 @@ def main():
                 break
         check("点击场上的 goal 确实选中了它", found is not None,
               f"点击位置 {found}" if found else "扫描了整个画布都没点中 goal")
-        check("左侧调色板有 5 项（4 pin + 1 cup）",
-              page.locator(".palette-item").count() == 5)
-        check("有「翻转」按钮", page.locator(".flip-btn").count() == 1)
+        check("左侧调色板有 6 项（4 pin + 正反 2 个 cup）",
+              page.locator(".palette-item").count() == 6)
+        check("有「翻转 pin」按钮", page.locator(".flip-btn").count() == 1)
 
         if found:
             page.screenshot(timeout=180000, path=os.path.join(SHOTS, "02-palette.png"))
 
             # ── 4. 翻转按钮 ───────────────────────────────────
             before = page.locator(".palette-item svg").first.inner_html()
+            cup_before = page.locator(".palette-item svg").nth(4).inner_html()
             page.locator(".flip-btn").click()
             time.sleep(0.3)
             after = page.locator(".palette-item svg").first.inner_html()
-            check("点击翻转后调色板图形改变", before != after)
+            cup_after = page.locator(".palette-item svg").nth(4).inner_html()
+            check("点击翻转后 pin 的图形改变", before != after)
+            check("cup 的正反是独立选项，不受翻转影响",
+                  cup_before == cup_after)
 
             # ── 5. 从面板拖一个 Pin 到桩上 ─────────────────────
             def drag_to(source_locator, tx, ty, hold=False):
@@ -469,6 +473,9 @@ def main():
         counts = page.evaluate("() => JSON.stringify(window.__vex3d.getState().midfieldCounts)")
         check("中场机器人数能改", '"red":1' in counts and '"blue":0' in counts, counts)
         # 中场放一个黄 pin：红方 1 台 > 蓝方 0 台 → 归红方
+        red_before = int(page.evaluate(
+            "() => document.querySelector('.score-cell.red .score-num').textContent"
+        ))
         page.evaluate(
             """() => {
               const st = window.__vex3d.getState();
@@ -479,11 +486,12 @@ def main():
             }"""
         )
         time.sleep(0.5)
-        red_score = page.evaluate(
+        # 用**增量**判断：前面几步在别的 goal 上留了件，总分不是干净的 10
+        red_score = int(page.evaluate(
             "() => document.querySelector('.score-cell.red .score-num').textContent"
-        )
+        ))
         check("中场机器人数多的那方拥有中场的黄色 pin",
-              red_score == "10", f"红方 {red_score} 分")
+              red_score - red_before == 10, f"红方 +{red_score - red_before} 分（应为 10）")
         page.evaluate(
             """() => {
               const st = window.__vex3d.getState();

@@ -216,7 +216,21 @@ export const PIN_VARIANTS: { id: string; label: string; halves: [PinColor, PinCo
 ]
 
 /** Cup = 透明半 + 不透明(灰)半 */
-export const CUP_VARIANT = { id: 'cup', label: '透明 / 灰', halves: ['clear', 'gray'] as [CupHalf, CupHalf] }
+/**
+ * Cup = 透明半 + 不透明(灰)半，**两个朝向各算一个选项**（上下对调 = 翻转）。
+ * 谁能罩住谁、罩住的是哪一半，全看这个朝向 —— 所以摆件时直接选，不用再按「翻转」。
+ */
+export const CUP_VARIANTS: {
+  id: string
+  label: string
+  halves: [CupHalf, CupHalf]
+}[] = [
+  { id: 'cup', label: '透明 / 灰', halves: ['clear', 'gray'] },
+  { id: 'cup-rev', label: '灰 / 透明', halves: ['gray', 'clear'] },
+]
+
+/** 兼容旧引用：默认朝向（透明在下） */
+export const CUP_VARIANT = CUP_VARIANTS[0]
 
 // 配色和词表都在 terms.ts（见文件头的说明），这里只 re-export：
 //   import { COLORS, ... } from '@/data/fieldSpec'  照旧能用
