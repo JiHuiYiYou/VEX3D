@@ -202,11 +202,68 @@ export function Goal({
         </mesh>
       )}
 
-      {/* 选中/悬停高亮环（CAD 几何下也有效） */}
-      {(selected || hovered) && (
+      {/* 选中 / 悬停高亮。选中的要**一眼看出来**（CAD 路径下 goal 的材质是不变的，
+          只能靠这些叠加的环和光柱） */}
+      {selected && (
+        <>
+          {/* 地面上的环：要画到 goal 轮廓外面，否则被 goal 本身挡住 */}
+          <mesh position={[0, 3, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
+            <ringGeometry args={[spec.baseRadius + 16, spec.baseRadius + 30, 64]} />
+            <meshBasicMaterial
+              color="#22d3ee"
+              transparent
+              opacity={0.75}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+          <mesh position={[0, 2, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={2}>
+            <ringGeometry args={[spec.baseRadius + 34, spec.baseRadius + 54, 64]} />
+            <meshBasicMaterial
+              color="#22d3ee"
+              transparent
+              opacity={0.28}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+          {/* 一柱光：从地面罩到摞顶 */}
+          <mesh position={[0, (stackTop + 20) / 2, 0]} renderOrder={1}>
+            <cylinderGeometry
+              args={[
+                spec.baseRadius * 1.02,
+                spec.baseRadius * 1.02,
+                stackTop + 20,
+                28,
+                1,
+                true,
+              ]}
+            />
+            <meshBasicMaterial
+              color="#22d3ee"
+              transparent
+              opacity={0.16}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+          {/* 摞顶的「落点环」：下一件放这儿 */}
+          <mesh position={[0, stackTop + 6, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={4}>
+            <ringGeometry args={[44, 58, 48]} />
+            <meshBasicMaterial
+              color="#22d3ee"
+              transparent
+              opacity={0.9}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        </>
+      )}
+      {!selected && hovered && (
         <mesh position={[0, 4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[spec.baseRadius + 4, spec.baseRadius + 16, 48]} />
-          <meshBasicMaterial color="#22d3ee" transparent opacity={0.85} side={THREE.DoubleSide} />
+          <meshBasicMaterial color="#22d3ee" transparent opacity={0.7} side={THREE.DoubleSide} />
         </mesh>
       )}
 

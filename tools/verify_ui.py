@@ -214,12 +214,15 @@ def main():
                 continue
             page.mouse.click(px, py)
             time.sleep(0.12)
-            if page.locator(".palette-item").count() == 5:
+            # 调色板现在是**一直显示**的，所以不能拿「调色板出现了」当「点中 goal 了」的证据，
+            # 要看 store 里到底选中了哪个 goal
+            if page.evaluate("() => !!window.__vex3d.getState().selectedGoalId"):
                 found = (px, py)
                 break
-        check("点击 goal 后左侧出现 4 Pin + 1 Cup", found is not None,
+        check("点击场上的 goal 确实选中了它", found is not None,
               f"点击位置 {found}" if found else "扫描了整个画布都没点中 goal")
-        check("调色板有 5 项", page.locator(".palette-item").count() == 5)
+        check("左侧调色板有 5 项（4 pin + 1 cup）",
+              page.locator(".palette-item").count() == 5)
         check("有「翻转」按钮", page.locator(".flip-btn").count() == 1)
 
         if found:
@@ -560,6 +563,49 @@ def main():
             cascade_ok = cascade_ok and rest == ["pin"]
             cascade_detail += f"；拆掉中间那个 → 剩 {rest}"
         check("拆掉一个得分物 → 它上面的 pin/cup 一并拆掉（不能悬空）", cascade_ok, cascade_detail)
+
+        # ── 8c. 单击放置：单击左侧得分物 → 落在已选中的 goal 上 ──
+        page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              const id = st.selectedGoalId;
+              window.__vex3d.setState({ stacks: { ...st.stacks, [id]: [] } });
+              st.selectGoal('g-n1');
+            }"""
+        )
+        time.sleep(0.5)
+
+        def goal_len(gid):
+            return page.evaluate(
+                "(id) => (window.__vex3d.getState().stacks[id] || []).length", gid
+            )
+
+        n_click0 = goal_len("g-n1")
+        page.locator(".palette-item").first.click()
+        time.sleep(0.6)
+        n_click1 = goal_len("g-n1")
+        check("单击左侧得分物 → 直接落在已选中的 goal 上",
+              n_click1 == n_click0 + 1, f"{n_click0} → {n_click1}")
+
+        # 也要守叠放规则：再点一个 pin → pin 叠 pin → 拒绝
+        page.locator(".palette-item").first.click()
+        time.sleep(0.6)
+        check("单击放置也守叠放规则（pin 叠 pin 被拒绝）",
+              goal_len("g-n1") == n_click1, f"仍 {goal_len('g-n1')} 件")
+
+        # 选中 goal 在 3D 里要看得见（底部的落点环）
+        sel_ring = page.evaluate(
+            """() => {
+              const s = window.__bridge.scene; s.updateMatrixWorld(true);
+              let n = 0;
+              s.traverse(o => {
+                if (o.isMesh && o.material && o.material.color &&
+                    o.material.color.getHexString() === '22d3ee') n++;
+              });
+              return n;
+            }"""
+        )
+        check("选中的 goal 在 3D 里高亮（青色环 + 光柱）", sel_ring >= 3, f"{sel_ring} 个高亮片")
 
         # ── 9. 相机能转 ─────────────────────────────────────
         page.mouse.move(cx, cy)

@@ -93,8 +93,25 @@ export function LeftPalette() {
     [setDragging],
   )
 
+  /**
+   * 单击 → 直接放在**已选中的那个 goal** 上（不用拖）。
+   * 叠放不合法时 `placeItem` 会拒绝并弹提示 ✓（比如 pin 叠 pin）。
+   */
+  const placeOnSelectedGoal = useCallback((variantId: string) => {
+    const st = useApp.getState()
+    if (!st.selectedGoalId) return
+    const item = makePaletteItem(variantId, st.paletteFlipped)
+    if (!item) return
+    st.placeItem(st.selectedGoalId, item)
+  }, [])
+
   const flip = (halves: readonly [string, string]) =>
     flipped ? ([halves[1], halves[0]] as const) : halves
+
+  const title = (label: string) =>
+    goal
+      ? `拖到 goal 上，或**单击**直接放在「${goalName(goal)}」上：${label}`
+      : `拖到场上的 goal 即可放置：${label}`
 
   return (
     <aside className="panel panel-left">
@@ -102,27 +119,19 @@ export function LeftPalette() {
 
       {selectedToggleId ? (
         <ToggleView quadrant={selectedToggleId} />
-      ) : !goal ? (
-        <div className="hint">
-          点击场地上的任意一个 <b>goal</b>，即可在这里选择要放置的 pin / cup；
-          点击围栏上的 <b>toggle</b>，可以设置它的颜色。
-          <br />
-          <br />
-          · 4 种 pin 配色：红蓝 / 红黄 / 蓝黄 / 黄黄
-          <br />
-          · 1 种 cup：透明半 + 不透明（灰）半
-          <br />
-          · <b>翻转</b>按钮会交换每一件的上下两半
-          <br />
-          · 叠放规则：<b>pin 只能放在 cup 上或直接放在 goal 上</b>，
-          <b>cup 只能放在 pin 上</b>，其它组合算非法
-        </div>
       ) : (
         <>
-          <div className="selected-goal">
-            已选中：<b>{goalName(goal)}</b>
-            <span className="muted">{goalKind(goal)}</span>
-          </div>
+          {goal ? (
+            <div className="selected-goal">
+              已选中：<b>{goalName(goal)}</b>
+              <span className="muted">{goalKind(goal)}</span>
+            </div>
+          ) : (
+            <div className="hint small">
+              点场地上的一个 <b>goal</b> 选中它（场上会高亮），
+              再<b>单击</b>下面的得分物就能直接放上去；也可以直接拖。
+            </div>
+          )}
 
           <button className="flip-btn" onClick={togglePaletteFlip}>
             翻转 {flipped ? '（已翻转）' : ''}
@@ -134,7 +143,8 @@ export function LeftPalette() {
                 key={v.id}
                 className="palette-item"
                 onPointerDown={startDrag(v.id)}
-                title={`拖到 goal 上放置：${v.label}`}
+                onClick={() => placeOnSelectedGoal(v.id)}
+                title={title(v.label)}
               >
                 <PinIcon halves={flip(v.halves)} />
                 <div className="palette-label">{v.label}</div>
@@ -143,7 +153,8 @@ export function LeftPalette() {
             <div
               className="palette-item"
               onPointerDown={startDrag(CUP_VARIANT.id)}
-              title="拖到 goal 上放置：透明 / 灰"
+              onClick={() => placeOnSelectedGoal(CUP_VARIANT.id)}
+              title={title('透明 / 灰')}
             >
               <CupIcon halves={flip(CUP_VARIANT.halves)} />
               <div className="palette-label">透明 / 灰</div>
@@ -154,10 +165,6 @@ export function LeftPalette() {
           {isMidfield && <MidfieldCounts />}
 
           <div className="hint small">
-            把上面任意一件<b>拖</b>到场地上的 goal 即可放置，可以叠多层。
-            <br />
-            <b>pin 只能放在 cup 上或直接放在 goal 上</b>，<b>cup 只能放在 pin 上</b>。
-            <br />
             已放置的件：<b>拖到画面边缘</b>四周会亮起红光、弹出红色垃圾桶，丢进去删除。
             <br />
             拆掉一个，<b>它上面的 pin / cup 会一并拆掉</b>（得分物不能悬空）。
