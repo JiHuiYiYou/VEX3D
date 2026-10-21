@@ -259,6 +259,11 @@ Goal ──▶ Pin ──▶ Cup ──▶ Pin ──▶ Cup …
   早先按同一种拼法画 Cup，结果形状、翻转效果、遮挡判定全错 —— 一次改三处，别只改一处。
 - **`OrbitControls` 有阻尼**：直接改 `camera.position` 会被它拽回自己的轨道。
   脚本里挪相机必须同时改 `sceneBridge.controls.target` 并 `update()`（见 `tools/shot_stack.py`）。
+- **`toThree()` 一定要取满三个分量**：`toThree(x, y, z) = [x, z, −y]`，
+  只取前两个（`const [gx, gy] = toThree(...)`）会把**南北方向搞丢** ——
+  拖拽幽灵件会镜像到中线另一边（**但放置结果是对的**，因为落点走的是射线命中的 goal id，
+  不看幽灵件的位置）。这个坑很隐蔽：东西照放不误，只是预览看着歪。
+  `src/scene/DragGhost.tsx` 就栽在这（已修），端到端里有断言守着。
 
 ### 仍然开放的问题
 

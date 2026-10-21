@@ -260,6 +260,24 @@ def main():
             # 非法①：Cup 直接放到空桩上 → 应被拒绝
             drag_to(page.locator(".palette-item").nth(4), found[0], found[1], hold=True)
             dt = drop_target()
+
+            # 幽灵件要**正好落在 goal 上**（之前只取了 toThree 的前两个分量，
+            # 南北方向镜像了，幽灵件会跑到中线另一边）
+            ghost = page.evaluate(
+                """() => {
+                  const s = window.__bridge.scene; s.updateMatrixWorld(true);
+                  const g = s.getObjectByName('drag-ghost');
+                  if (!g) return null;
+                  const v = g.getWorldPosition(g.position.clone());
+                  const st = window.__vex3d.getState();
+                  const spec = (window.__goalPositions || []).find(x => x.id === st.hoverGoalId);
+                  if (!spec) return null;
+                  return { dx: Math.round(v.x - spec.pos[0]), dz: Math.round(v.z - spec.pos[2]),
+                           goalId: st.hoverGoalId };
+                }"""
+            )
+            check("拖拽幽灵件跟 goal 对齐（不偏到中线那边）",
+                  bool(ghost) and abs(ghost["dx"]) < 3 and abs(ghost["dz"]) < 3, str(ghost))
             check("空 goal 上放 cup：落点被标记为不合法",
                   bool(dt) and dt.get("legal") is False, str(dt))
             page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04b-illegal-drop.png"))

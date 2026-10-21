@@ -1,4 +1,4 @@
-import { CUP_HEIGHT, GOAL_BY_ID, HALVES, PIN_HEIGHT } from '@/data/fieldSpec'
+import { CUP_HEIGHT, GOAL_BY_ID, HALVES, PIN_HEIGHT, toThree } from '@/data/fieldSpec'
 import type { GoalSpec } from '@/data/fieldSpec'
 import type { StackItem } from '@/state/scoring'
 
@@ -131,4 +131,11 @@ if (import.meta.env.DEV) {
     if (!goal) return []
     return layoutStack(goal, stack).map((s) => ({ id: s.item.id, baseY: s.baseY }))
   }
+  // 各 goal 在 three 系里的位置（断言拖拽幽灵件跟 goal 对齐用）
+  ;(window as unknown as { __goalPositions?: unknown }).__goalPositions = Object.values(
+    GOAL_BY_ID,
+  ).map((g) => ({
+    id: g.id,
+    pos: toThree(g.position[0], g.position[1], g.position[2]),
+  }))
 }

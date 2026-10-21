@@ -51,9 +51,11 @@ export function DragGhost() {
 
     if (hoverGoalId && GOAL_BY_ID[hoverGoalId]) {
       const goal = GOAL_BY_ID[hoverGoalId]
-      const [gx, gy] = toThree(goal.position[0], goal.position[1], 0)
+      // ★ 必须用完整的 toThree(x, y, z) = [x, z, −y]：
+      // 之前只取前两个分量，把场地的南北方向搞丢了，幽灵件会镜像到中线另一边。
+      const [gx, , gz] = toThree(goal.position[0], goal.position[1], 0)
       x = gx
-      z = gy
+      z = gz
       if (illegal) {
         // 非法叠放：不吸附，悬在 goal 上方等着被拒绝
         y = goal.socket.z + 90
@@ -79,7 +81,7 @@ export function DragGhost() {
 
   if (!dragging) {
     return (
-      <group ref={group} visible={false}>
+      <group ref={group} name="drag-ghost" visible={false}>
         <mesh geometry={pinGeo} />
       </group>
     )
@@ -91,7 +93,7 @@ export function DragGhost() {
   const illegal = !!dropTarget && !dropTarget.legal
 
   return (
-    <group ref={group}>
+    <group ref={group} name="drag-ghost">
       {([0, 1] as const).map((i) => {
         // ★ 用和实物一样的拼法：Pin = 翻边对翻边，Cup = 杯口对杯口
         const t = halfTransform(item, i, 0)
