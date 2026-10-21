@@ -450,6 +450,27 @@ body {
   font-size: 11px;
 }
 
+/* ── 非法叠放提示 ─────────────────────────────────────── */
+.place-hint {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  background: rgba(190, 40, 40, 0.94);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  z-index: 30;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+.hint.small.warn {
+  color: #ff8a80;
+}
+
 /* ── 垃圾桶 / 拖拽删除红光 ───────────────────────────── */
 .trash-glow {
   position: absolute;

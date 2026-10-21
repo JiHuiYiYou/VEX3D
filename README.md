@@ -21,6 +21,12 @@
 
 ![拖拽中](docs/dragging.png)
 
+![嵌套](docs/nesting.png)
+
+上图是一个 **Pin → Cup → Pin** 的摞（近景）。**Cup 的下半（透明）罩着下面那个 Pin 的上半**，
+所以红色透过它看得见；**Cup 的上半（灰）罩着上面那个 Pin 的下半**，
+蓝色那一半就被挡住了（计分板上打叉）。
+
 ## 能做什么
 
 - **真实场地** —— 直接用官方 Field CAD
@@ -28,8 +34,13 @@
   9 个 Goal、4 个 Toggle、4 个 Loader、中场菱形、对角胶带、红蓝角区、格纹围栏。
   Goal 的高度、socket 孔径、Pin/Cup 半体尺寸全部是 CAD 实测值（与手册差 < 0.1 mm）。
 - **点击桩 → 左侧调色板** —— 4 种 Pin（红蓝 / 红黄 / 蓝黄 / 黄黄）+ 1 种 Cup（透明 / 灰），
-  一个**翻转**按钮交换每一件的上下两半（翻 Cup 会直接改变它用哪半罩住下面的 Pin）。
-- **拖拽放置、可叠好几层** —— 从调色板拖到场上的桩，Pin / Cup 一层层往上叠。
+  一个**翻转**按钮交换每一件的上下两半。
+- **两种件的形状不一样**（CAD 装配树实测）：**Pin = 翻边对翻边的线轴**，
+  **Cup = 杯口对杯口的沙漏**（两端敞口宽沿、中间 Ø59 细腰）。
+  叠放时是真的**套进去**的 —— Cup 的下半是薄壁套筒，罩着 Pin 的上半锥体，
+  Pin 的尖端正好探进 Cup 的腰（杯口）。
+- **叠放规则** —— **Pin 只能放在 Cup 上或直接放在桩上，Cup 只能放在 Pin 上**；
+  其它组合算非法，直接拒绝并给一句中文提示。
 - **删除手势** —— 拖动已放好的件，**画面四周会亮起红光**；越靠近边缘越亮，
   最近那条边中央弹出**红色垃圾桶**，丢进去即删。
 - **实时计分板** —— 联盟色端子 5 分、被拥有的黄色端子 10 分；
@@ -48,7 +59,7 @@
 ```bash
 npm install
 npm run dev        # http://127.0.0.1:5173
-npm test           # 计分引擎回归测试（13 个场景）
+npm test           # 计分引擎回归测试（17 个场景 + 摆放合法性）
 npm run build      # 产物在 dist/
 ```
 
@@ -82,6 +93,7 @@ src/
   state/scoring.ts    ★ 计分引擎（全部规则逻辑都在这一个文件里）
   state/store.ts      zustand store
   state/drag.ts       拖拽指针状态（放在 React 之外，避免每帧重渲染）
+  scene/stackLayout.ts ★ 堆叠几何：半体摆放 + 嵌套落点（3D / 幽灵件 / 测试共用）
   scene/              R3F 场景：场地 / Goal / 得分物 / Toggle / 象限染色 / 拖拽幽灵件
   ui/                 左侧调色板、计分板、Toggle 面板、规则说明、垃圾桶
 tools/                离线 Python 管线（OCP）+ 验证脚本
@@ -100,7 +112,8 @@ docs/                 README 用的截图
 | `npm run preview` | 预览 `dist/` |
 | `npm test` | 计分引擎回归测试（Node 直接跑 `.ts`，需要 Node 22.18+ / 24） |
 | `npm run typecheck` | 只做类型检查 |
-| `C:/.../miniconda3/python.exe tools/verify_ui.py` | Playwright 端到端验证（21 项断言 + 截图） |
+| `C:/.../miniconda3/python.exe tools/verify_ui.py` | Playwright 端到端验证（29 项断言 + 截图） |
+| `C:/.../miniconda3/python.exe tools/shot_stack.py` | 拍一张 Pin/Cup 嵌套特写（肉眼核对用） |
 
 ### 可选：接上 VEX 规则查询 MCP
 
@@ -126,6 +139,8 @@ docs/                 README 用的截图
   同一个 Cup 半体里最多放 1 个 Pin。
 - `<SC3>` 端子嵌在 **透明** 杯半体里、或 **未被 Cup 覆盖** 时计分；
   被不透明（灰）杯挡住不计分。一个 placed 的 Pin 有 1 个或 2 个得分端子。
+- **罩住关系**（CAD 实测 + 手册图 SC5-1/2）：Cup 的**下半**罩住它**下面**那个 Pin 的**上半**；
+  Cup 的**上半**罩住它**上面**那个 Pin 的**下半**。Goal 不是 Cup，不挡分。
 - `<SC3> a/b/c` 按**端子自身颜色**判联盟：红 → 红方、蓝 → 蓝方、黄 → 拥有方。
   联盟桩的颜色**不改变**端子的归属。
 - `<SC4>` Toggle 只有 **红 / 蓝 / 黄** 三个有效朝向；黄色表示谁都不拥有。

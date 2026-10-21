@@ -48,9 +48,12 @@ export function useDragController() {
       // 拾取放置目标
       if (overCanvas) {
         const hit = pickDropTarget(e.clientX, e.clientY)
-        st.setHoverGoal(hit ? (hit.userData.goalId as string) : null)
+        const goalId = hit ? (hit.userData.goalId as string) : null
+        st.setHoverGoal(goalId)
+        st.setDropTarget(goalId)
       } else {
         st.setHoverGoal(null)
+        st.setDropTarget(null)
       }
 
       // frameloop="demand"：指针移动时主动要一帧，幽灵件才会跟手

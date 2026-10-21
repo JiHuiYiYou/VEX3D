@@ -4,42 +4,15 @@ import { useApp } from '@/state/store'
 import { goalGeometry, pinHalfGeometry, cupHalfGeometry } from './geometry'
 import { loadHalfGeometry, useGoalAsset, useOptionalGeometry } from './assets'
 import { materialFor } from './materials'
-import { COLORS, HALVES, NEST_DEPTH, PIN_HEIGHT, CUP_HEIGHT, toThree } from '@/data/fieldSpec'
+import { COLORS, HALVES, toThree } from '@/data/fieldSpec'
 import type { GoalSpec } from '@/data/fieldSpec'
 import type { StackItem } from '@/state/scoring'
 import { sceneBridge } from './bridge'
+import { halfTransform, layoutStack, stackTopY } from './stackLayout'
 
 /**
- * 一个半体在 3D 里的摆放。
- *
- * 半体的局部约定：翻边在原点，尖端在 -Y（见 geometry.ts / CAD 导出约定）。
- *  · 下半（尖端朝下）：旋转 0，位置 baseY + h
- *  · 上半（尖端朝上）：绕 X 轴 180°，位置 baseY + h - overlap
- * 这样一个 Pin / Cup 拼起来是「两头窄、中间粗」的线轴形，两个翻边在中部交叠。
+ * 半体在 3D 里的摆放（Pin = 翻边对翻边、Cup = 杯口对杯口）见 `stackLayout.ts`。
  */
-function halfTransform(
-  item: StackItem,
-  halfIndex: 0 | 1,
-  itemBaseY: number,
-): { pos: [number, number, number]; rotX: number } {
-  const h = halfHeight(item)
-  if (halfIndex === 0) return { pos: [0, itemBaseY + h, 0], rotX: 0 }
-  return { pos: [0, itemBaseY + h - halfOverlap(item), 0], rotX: Math.PI }
-}
-
-export function halfHeight(item: StackItem) {
-  return item.kind === 'pin' ? HALVES.pin.height : HALVES.cup.height
-}
-
-/** 一个完整 Pin / Cup 的高度（CAD 实测 165 / 164.5） */
-export function itemHeight(item: StackItem) {
-  return item.kind === 'pin' ? PIN_HEIGHT : CUP_HEIGHT
-}
-
-/** 两个半体交叠的深度（Pin 10 mm，Cup 7.5 mm） */
-export function halfOverlap(item: StackItem) {
-  return halfHeight(item) * 2 - itemHeight(item)
-}
 
 const PIN_GEO = pinHalfGeometry(HALVES.pin)
 const CUP_GEO = cupHalfGeometry(HALVES.cup)
@@ -151,12 +124,15 @@ export function Goal({
   selected,
   hovered,
   selectedItemId,
+  dropOk,
 }: {
   spec: GoalSpec
   stack: StackItem[]
   selected: boolean
   hovered: boolean
   selectedItemId: string | null
+  /** 当前是合法落点（拖拽时才会为 true） */
+  dropOk: boolean
 }) {
   const geo = useMemo(() => goalGeometry(spec), [spec])
   const selectGoal = useApp((s) => s.selectGoal)
@@ -183,14 +159,9 @@ export function Goal({
     }
   }, [])
 
-  // 叠放：底部塞进 socket 孔里（尖端落到喉口底部），之后每件叠上去
-  let cursor = spec.socket.z - spec.socket.depth + 2
-  const pieces = stack.map((item) => {
-    const baseY = cursor
-    cursor += itemHeight(item) - NEST_DEPTH
-    return { item, baseY }
-  })
-  const stackTop = cursor
+  // 叠放：底部塞进 socket 孔里（腰架在孔沿、尖端落到喉口），之后按嵌套关系往上套
+  const pieces = layoutStack(spec, stack)
+  const stackTop = stackTopY(spec, stack)
 
   const [gx, gy, gz] = toThree(spec.position[0], spec.position[1], spec.position[2])
   const variantColor =
@@ -239,6 +210,14 @@ export function Goal({
         </mesh>
       )}
 
+      {/* 合法落点提示环：贴在摞顶。非法叠放时这个环完全不出现。 */}
+      {dropOk && (
+        <mesh position={[0, stackTop + 4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[46, 60, 48]} />
+          <meshBasicMaterial color="#22c55e" transparent opacity={0.9} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+
       {/* 点击热区：贴着桩体形状的锥台（不高于桩顶，免得抢掉叠在上面的得分物的点击） */}
       <mesh
         position={[0, spec.height / 2, 0]}
@@ -248,8 +227,13 @@ export function Goal({
           selectGoal(spec.id)
           selectItem(null)
         }}
-        onPointerOver={() => setHoverGoal(spec.id)}
-        onPointerOut={() => setHoverGoal(null)}
+        onPointerOver={() => {
+          // 拖拽时由拖拽控制器统一管理悬停，避免两边打架
+          if (!useApp.getState().dragging) setHoverGoal(spec.id)
+        }}
+        onPointerOut={() => {
+          if (!useApp.getState().dragging) setHoverGoal(null)
+        }}
       >
         <cylinderGeometry args={[spec.topRadius, spec.baseRadius, spec.height, 16]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -287,19 +271,28 @@ export function Goals({ goals }: { goals: GoalSpec[] }) {
   const selectedGoalId = useApp((s) => s.selectedGoalId)
   const selectedItemId = useApp((s) => s.selectedItemId)
   const hoverGoalId = useApp((s) => s.hoverGoalId)
+  const dropTarget = useApp((s) => s.dropTarget)
+  const dragging = useApp((s) => s.dragging)
 
   return (
     <>
-      {goals.map((g) => (
-        <Goal
-          key={g.id}
-          spec={g}
-          stack={stacks[g.id] ?? []}
-          selected={selectedGoalId === g.id}
-          hovered={hoverGoalId === g.id}
-          selectedItemId={selectedItemId}
-        />
-      ))}
+      {goals.map((g) => {
+        // 拖拽时：只有合法落点才高亮（非法时连悬停环都不给）
+        const isDropTarget = dropTarget?.goalId === g.id
+        const dropOk = !!dragging && isDropTarget && dropTarget!.legal
+        const hovered = hoverGoalId === g.id && (!dragging || dropOk)
+        return (
+          <Goal
+            key={g.id}
+            spec={g}
+            stack={stacks[g.id] ?? []}
+            selected={selectedGoalId === g.id}
+            hovered={hovered}
+            selectedItemId={selectedItemId}
+            dropOk={dropOk}
+          />
+        )
+      })}
     </>
   )
 }

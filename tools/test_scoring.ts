@@ -5,7 +5,7 @@
  *
  * scoring.ts 只有 type-only 的 import，所以可以被 node 直接加载。
  */
-import { scoreField } from '../src/state/scoring.ts'
+import { scoreField, checkPlacement } from '../src/state/scoring.ts'
 import type { StackItem } from '../src/state/scoring.ts'
 
 type Goal = Parameters<typeof scoreField>[0]['goals'][number]
@@ -148,12 +148,70 @@ console.log('\n── 场景 12：Pin → 灰杯 → Pin：中间的灰杯同时
   eq('蓝方 5 分（蓝 Pin 的上半）', r.blue, 5)
 }
 
-console.log('\n── 场景 13：Pin → 透明杯 → Pin：透明杯不挡分，4 个端子全得分 ──')
+console.log('\n── 场景 13：Pin → 杯（下半透明/上半灰）→ Pin：下半透明 → 下面 Pin 的上半照样得分；上半灰 → 上面 Pin 的下半被挡 ──')
 {
   const r = run({ 'g-n1': [pin('red', 'red'), cup('clear', 'gray'), pin('blue', 'blue')] }, toggles())
-  eq('4 个端子都得分', r.halves.filter((h) => h.scored).length, 4)
-  eq('红方 10 分', r.red, 10)
-  eq('蓝方 10 分', r.blue, 10)
+  eq('3 个端子得分', r.halves.filter((h) => h.scored).length, 3)
+  eq('1 个端子被灰半挡住', r.blocked, 1)
+  eq('红方 10 分（下面那个 Pin 的两半）', r.red, 10)
+  eq('蓝方 5 分（上面那个 Pin 只剩上半）', r.blue, 5)
+}
+
+console.log('\n── 场景 14：同一个摞把 Cup 翻过来（下半灰/上半透明）→ 挡的那一半也换了人 ──')
+{
+  const r = run({ 'g-n1': [pin('red', 'red'), cup('gray', 'clear'), pin('blue', 'blue')] }, toggles())
+  eq('3 个端子得分', r.halves.filter((h) => h.scored).length, 3)
+  eq('1 个端子被灰半挡住', r.blocked, 1)
+  eq('红方 5 分（下面那个 Pin 只剩下半）', r.red, 5)
+  eq('蓝方 10 分（上面那个 Pin 的两半）', r.blue, 10)
+}
+
+console.log('\n── 场景 15：五层交替摞 Pin→Cup→Pin→Cup→Pin ──')
+{
+  const r = run(
+    {
+      'g-n1': [
+        pin('red', 'red'),
+        cup('clear', 'gray'),
+        pin('blue', 'blue'),
+        cup('gray', 'clear'),
+        pin('red', 'red'),
+      ],
+    },
+    toggles(),
+  )
+  eq('6 个端子都 placed', r.halves.filter((h) => h.placed).length, 6)
+  eq('4 个端子得分', r.halves.filter((h) => h.scored).length, 4)
+  eq('2 个端子被挡', r.blocked, 2)
+  eq('红方 20 分（上下两个红 Pin）', r.red, 20)
+  eq('蓝方 0 分（中间蓝 Pin 两半都被挡）', r.blue, 0)
+}
+
+console.log('\n── 场景 16：黄色 Pin 放在 Cup 上（黄色归属仍按 Toggle 算）──')
+{
+  const r = run({ 'g-n1': [pin('yellow', 'yellow'), cup('clear', 'gray')] }, toggles({ top: 'red' }))
+  eq('红方 20 分（两个黄半：下半没被覆盖、上半在透明半里）', r.red, 20)
+}
+
+console.log('\n── 场景 17：Cup 直接放在 Goal 上（非法摞）→ 引擎不炸、也不计分 ──')
+{
+  const r = run({ 'g-n1': [cup('clear', 'gray')] }, toggles())
+  eq('没有任何端子', r.halves.length, 0)
+  eq('红方 0 分', r.red, 0)
+  eq('蓝方 0 分', r.blue, 0)
+}
+
+console.log('\n── 摆放合法性：Pin 只能放 Cup 上或直接放桩上，Cup 只能放 Pin 上 ──')
+{
+  eq('空桩上放 Pin → 合法', checkPlacement('pin', []).ok, true)
+  eq('空桩上放 Cup → 拒绝', checkPlacement('cup', []).ok, false)
+  eq('拒绝理由提到 Cup', checkPlacement('cup', []).reason.includes('Cup'), true)
+  eq('Pin 上放 Cup → 合法', checkPlacement('cup', [pin('red', 'red')]).ok, true)
+  eq('Pin 上放 Pin → 拒绝', checkPlacement('pin', [pin('red', 'red')]).ok, false)
+  eq('Cup 上放 Pin → 合法', checkPlacement('pin', [pin('red', 'red'), cup('clear', 'gray')]).ok, true)
+  eq('Cup 上放 Cup → 拒绝', checkPlacement('cup', [pin('red', 'red'), cup('clear', 'gray')]).ok, false)
+  eq('三摞（顶上是 Pin）再放 Cup → 合法', checkPlacement('cup', [pin('red', 'red'), cup('clear', 'gray'), pin('blue', 'blue')]).ok, true)
+  eq('三摞（顶上是 Pin）再放 Pin → 拒绝', checkPlacement('pin', [pin('red', 'red'), cup('clear', 'gray'), pin('blue', 'blue')]).ok, false)
 }
 
 console.log(failures === 0 ? '\n全部通过 ✅\n' : `\n${failures} 项失败 ❌\n`)

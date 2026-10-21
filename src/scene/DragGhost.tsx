@@ -6,6 +6,7 @@ import { dragPointer } from '@/state/drag'
 import { HALVES, GOAL_BY_ID, toThree } from '@/data/fieldSpec'
 import { cupHalfGeometry, pinHalfGeometry } from './geometry'
 import { pickOnPlane } from './bridge'
+import { halfTransform, nextBaseY } from './stackLayout'
 
 const PIN_GEO = pinHalfGeometry(HALVES.pin)
 const CUP_GEO = cupHalfGeometry(HALVES.cup)
@@ -20,7 +21,7 @@ const HALF_COLORS: Record<string, string> = {
 
 /**
  * 拖拽中的「幽灵」件。
- *  · 从左侧面板拖出来 → 吸附到目标桩的堆栈顶端（合法落点会高亮）
+ *  · 从左侧面板拖出来 → 吸附到目标桩摞顶的落点（合法才吸附，非法时染红并悬空）
  *  · 拖动已放置的件 → 跟随光标在水平面上移动
  */
 export function DragGhost() {
@@ -39,17 +40,28 @@ export function DragGhost() {
     g.visible = true
     invalidate() // 拖拽时保持连续刷新
 
+    const st = useApp.getState()
+    const drop = st.dropTarget
+    const illegal = !!drop && !drop.legal
+
     let x = 0
     let y = 200
     let z = 0
+    let snapped = false
 
     if (hoverGoalId && GOAL_BY_ID[hoverGoalId]) {
-      // 吸附到桩顶
       const goal = GOAL_BY_ID[hoverGoalId]
       const [gx, gy] = toThree(goal.position[0], goal.position[1], 0)
       x = gx
       z = gy
-      y = goal.socket.z - goal.socket.depth + 14
+      if (illegal) {
+        // 非法叠放：不吸附，悬在桩上方等着被拒绝
+        y = goal.socket.z + 90
+      } else {
+        // ★ 吸附到这个摞的落点（按嵌套关系算，不是 socket 顶）
+        y = nextBaseY(goal, st.stacks[goal.id] ?? [], dragging.item.kind)
+        snapped = true
+      }
     } else {
       // 跟随光标（投到 y=200 的水平面）
       const p = pickOnPlane(dragPointer.clientX, dragPointer.clientY, 200)
@@ -60,9 +72,9 @@ export function DragGhost() {
       }
     }
     g.position.set(x, y, z)
-    g.rotation.y += 0.02
-    const s = overTrash ? 0.75 : 1
-    g.scale.setScalar(s)
+    // 吸附时不自转，免得和摞里的件错位
+    if (!snapped) g.rotation.y += 0.02
+    g.scale.setScalar(overTrash ? 0.75 : 1)
   })
 
   if (!dragging) {
@@ -75,28 +87,33 @@ export function DragGhost() {
 
   const item = dragging.item
   const geo = item.kind === 'pin' ? pinGeo : cupGeo
-  const h = item.kind === 'pin' ? HALVES.pin.height : HALVES.cup.height
-  const overlap = h * 2 - (item.kind === 'pin' ? 165 : 164.5)
+  const dropTarget = useApp.getState().dropTarget
+  const illegal = !!dropTarget && !dropTarget.legal
 
   return (
     <group ref={group}>
-      {[0, 1].map((i) => (
-        <mesh
-          key={i}
-          geometry={geo}
-          position={[0, i === 0 ? h : h - overlap, 0]}
-          rotation={[i === 0 ? 0 : Math.PI, 0, 0]}
-        >
-          <meshStandardMaterial
-            color={HALF_COLORS[item.halves[i]]}
-            transparent
-            opacity={0.55}
-            roughness={0.4}
-            emissive={HALF_COLORS[item.halves[i]]}
-            emissiveIntensity={0.35}
-          />
-        </mesh>
-      ))}
+      {([0, 1] as const).map((i) => {
+        // ★ 用和实物一样的拼法：Pin = 翻边对翻边，Cup = 杯口对杯口
+        const t = halfTransform(item, i, 0)
+        const c = HALF_COLORS[item.halves[i]]
+        return (
+          <mesh
+            key={i}
+            geometry={geo}
+            position={t.pos}
+            rotation={[t.rotX, 0, 0]}
+          >
+            <meshStandardMaterial
+              color={c}
+              transparent
+              opacity={0.55}
+              roughness={0.4}
+              emissive={illegal ? '#ff3b30' : c}
+              emissiveIntensity={illegal ? 0.9 : 0.35}
+            />
+          </mesh>
+        )
+      })}
     </group>
   )
 }

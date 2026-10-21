@@ -4,6 +4,7 @@ import { LeftPalette } from './ui/LeftPalette'
 import { ScoreBoard } from './ui/ScoreBoard'
 import { TogglePanel } from './ui/TogglePanel'
 import { TrashZone } from './ui/TrashZone'
+import { PlaceHint } from './ui/PlaceHint'
 import { TopBar } from './ui/TopBar'
 import { RulesDrawer } from './ui/RulesDrawer'
 import { useApp } from './state/store'
@@ -50,6 +51,7 @@ export default function App() {
         <div className="stage">
           {ready ? <FieldScene /> : <div className="loading">正在载入场地…</div>}
           <TrashZone />
+          <PlaceHint />
         </div>
         <div className="right-col">
           <ScoreBoard />

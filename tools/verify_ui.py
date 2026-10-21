@@ -142,7 +142,7 @@ def main():
             check("点击翻转后调色板图形改变", before != after)
 
             # ── 5. 从面板拖一个 Pin 到桩上 ─────────────────────
-            def drag_to(source_locator, tx, ty):
+            def drag_to(source_locator, tx, ty, hold=False):
                 sb = source_locator.bounding_box()
                 sx, sy = sb["x"] + sb["width"] / 2, sb["y"] + sb["height"] / 2
                 page.mouse.move(sx, sy)
@@ -151,6 +151,8 @@ def main():
                     t = i / 10
                     page.mouse.move(sx + (tx - sx) * t, sy + (ty - sy) * t)
                     time.sleep(0.02)
+                if hold:
+                    return          # 保持按住，用来读拖拽中的状态
                 page.mouse.up()
                 time.sleep(0.6)
 
@@ -159,7 +161,28 @@ def main():
                     "() => Object.values(window.__vex3d.getState().stacks).flat().length"
                 )
 
+            def drop_target():
+                return page.evaluate("() => window.__vex3d.getState().dropTarget")
+
             n0 = stack_len()
+
+            # 非法①：Cup 直接放到空桩上 → 应被拒绝
+            drag_to(page.locator(".palette-item").nth(4), found[0], found[1], hold=True)
+            dt = drop_target()
+            check("空桩上放 Cup：落点被标记为不合法",
+                  bool(dt) and dt.get("legal") is False, str(dt))
+            page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04b-illegal-drop.png"))
+            page.mouse.up()
+            time.sleep(0.5)
+            n_rej = stack_len()
+            check("空桩上放 Cup 被拒绝（件数不变）", n_rej == n0, f"{n0} → {n_rej}")
+            hint = page.locator(".place-hint")
+            hint_text = hint.inner_text() if hint.count() else ""
+            check("拒绝时给出中文提示", bool(hint_text) and "Cup" in hint_text, hint_text)
+            check("被拒绝后计分板没有端子",
+                  page.evaluate("() => document.querySelectorAll('.half-row').length") == 0)
+
+            # 合法①：Pin 放到空桩上
             drag_to(page.locator(".palette-item").first, found[0], found[1])
             n1 = stack_len()
             check("拖放后桩上多了一件", n1 == n0 + 1, f"{n0} → {n1}")
@@ -168,11 +191,43 @@ def main():
             check("计分板列出 Pin 的两个端子", placed == 2, f"{placed} 个端子")
             page.screenshot(timeout=180000, path=os.path.join(SHOTS, "03-placed.png"))
 
-            # ── 6. 再拖一个 Cup 上去（叠层）──────────────────
+            # 非法②：Pin 叠到 Pin 上 → 应被拒绝
+            drag_to(page.locator(".palette-item").first, found[0], found[1], hold=True)
+            dt = drop_target()
+            check("Pin 叠 Pin：落点被标记为不合法",
+                  bool(dt) and dt.get("legal") is False, str(dt))
+            page.mouse.up()
+            time.sleep(0.5)
+            check("Pin 叠 Pin 被拒绝（件数不变）", stack_len() == n1, f"{n1} → {stack_len()}")
+
+            # 合法②：Cup 叠到 Pin 上
             drag_to(page.locator(".palette-item").nth(4), found[0], found[1])
             n2 = stack_len()
             check("再放一个件后件数增加（叠层）", n2 == n1 + 1, f"{n1} → {n2}")
             page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04-stacked.png"))
+
+            # 合法③：Pin 叠到 Cup 上（Pin 只能放 Cup 上）
+            drag_to(page.locator(".palette-item").first, found[0], found[1])
+            n3 = stack_len()
+            check("Pin 叠到 Cup 上合法（件数 +1）", n3 == n2 + 1, f"{n2} → {n3}")
+
+            # 嵌套落点：Cup 坐在 Pin 的腰上（+82.5），Pin 坐在 Cup 的上沿上（+82.0）
+            layout = page.evaluate(
+                """() => {
+                  const st = window.__vex3d.getState();
+                  const id = st.selectedGoalId;
+                  const slots = window.__stackLayout(id, st.stacks[id]);
+                  return slots.map(s => s.baseY);
+                }"""
+            )
+            ok_nest = (
+                len(layout) == 3
+                and abs((layout[1] - layout[0]) - 82.8) < 0.2
+                and abs((layout[2] - layout[1]) - 82.3) < 0.2
+            )
+            check("嵌套落点正确（Cup 坐 Pin 的腰 +82.5 / Pin 坐 Cup 的上沿 +82.0）",
+                  ok_nest, f"baseY = {layout}")
+            page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04c-nested.png"))
 
         # ── 7. Toggle 切换会改分 ─────────────────────────────
         before_score = page.evaluate(

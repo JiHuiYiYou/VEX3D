@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { QuadrantId, ToggleState } from '@/data/fieldSpec'
 import { PIN_VARIANTS, CUP_VARIANT, GOALS, QUADRANT_TOGGLE } from '@/data/fieldSpec'
+import { checkPlacement } from './scoring'
 import type { StackItem } from './scoring'
 
 export type DragPayload =
@@ -35,6 +36,13 @@ export interface AppState {
   hoverGoalId: string | null
   /** 拖拽时指针是否在垃圾桶上 */
   overTrash: boolean
+  /**
+   * 拖拽时当前落点的判定。
+   * legal=false 时目标不高亮、幽灵染红，松手会被拒绝。
+   */
+  dropTarget: { goalId: string; legal: boolean; reason: string } | null
+  /** 最近一次被拒绝的放置（UI 弹提示用） */
+  placeError: { goalId: string; reason: string; at: number } | null
   /** 画质 */
   quality: Quality
   /** 是否把象限按 Toggle 状态染色 */
@@ -46,7 +54,8 @@ export interface AppState {
   selectGoal: (id: string | null) => void
   selectItem: (id: string | null) => void
   togglePaletteFlip: () => void
-  placeItem: (goalId: string, item: StackItem) => void
+  /** 放置（非法叠放会被拒绝，返回 false 并写 placeError） */
+  placeItem: (goalId: string, item: StackItem) => boolean
   removeItem: (goalId: string, itemId: string) => void
   flipItem: (goalId: string, itemId: string) => void
   setToggle: (q: QuadrantId, state: ToggleState) => void
@@ -54,6 +63,9 @@ export interface AppState {
   setDragging: (d: DragPayload | null) => void
   setHoverGoal: (id: string | null) => void
   setOverTrash: (v: boolean) => void
+  /** 拖拽时更新落点判定（内部算合法性） */
+  setDropTarget: (goalId: string | null) => void
+  clearPlaceError: () => void
   setQuality: (q: Quality) => void
   toggleQuadrantTint: () => void
   setHoverQuadrant: (q: QuadrantId | null) => void
@@ -94,6 +106,8 @@ export const useApp = create<AppState>((set, get) => ({
   dragging: null,
   hoverGoalId: null,
   overTrash: false,
+  dropTarget: null,
+  placeError: null,
   quality: initialQuality(),
   showQuadrantTint: true,
   hoverQuadrant: null,
@@ -108,11 +122,24 @@ export const useApp = create<AppState>((set, get) => ({
 
   togglePaletteFlip: () => set((s) => ({ paletteFlipped: !s.paletteFlipped })),
 
-  placeItem: (goalId, item) =>
-    set((s) => {
-      const stack = s.stacks[goalId] ?? []
-      return { stacks: { ...s.stacks, [goalId]: [...stack, item] } }
-    }),
+  /**
+   * 放置的唯一入口：先判合法性，非法就**拒绝**（并记下原因给 UI 弹提示）。
+   *
+   * 规则（用户口径）：Pin 只能放在 Cup 上或直接放在 Goal 上；Cup 只能放在 Pin 上。
+   */
+  placeItem: (goalId, item) => {
+    const stack = get().stacks[goalId] ?? []
+    const check = checkPlacement(item.kind, stack)
+    if (!check.ok) {
+      set({ placeError: { goalId, reason: check.reason, at: Date.now() } })
+      return false
+    }
+    set((s) => ({
+      stacks: { ...s.stacks, [goalId]: [...(s.stacks[goalId] ?? []), item] },
+      placeError: null,
+    }))
+    return true
+  },
 
   removeItem: (goalId, itemId) =>
     set((s) => {
@@ -123,6 +150,14 @@ export const useApp = create<AppState>((set, get) => ({
       }
     }),
 
+  /**
+   * 翻转：交换上下两半。
+   *
+   * 对 Pin：换的是哪一半在上面（颜色变了）。
+   * 对 Cup：换的是**哪一半罩住了谁** —— halves[0] = 下半（罩住它下面那个 Pin 的上半），
+   * halves[1] = 上半（罩住它上面那个 Pin 的下半）。翻过来就换了一对透明/不透明，
+   * 直接决定被罩住的那一半计不计分。
+   */
   flipItem: (goalId, itemId) =>
     set((s) => {
       const stack = s.stacks[goalId] ?? []
@@ -144,12 +179,38 @@ export const useApp = create<AppState>((set, get) => ({
       return { toggles: { ...s.toggles, [q]: next } }
     }),
 
-  setDragging: (d) => set({ dragging: d, hoverGoalId: null, overTrash: false }),  setHoverGoal: (id) => {
+  setDragging: (d) =>
+    set({
+      dragging: d,
+      hoverGoalId: null,
+      overTrash: false,
+      dropTarget: null,
+      // 只在**开始**新拖拽时清掉旧提示；结束时（d === null）要保留刚拒绝的那条
+      placeError: d ? null : get().placeError,
+    }),
+  setHoverGoal: (id) => {
     if (get().hoverGoalId !== id) set({ hoverGoalId: id })
   },
   setOverTrash: (v) => {
     if (get().overTrash !== v) set({ overTrash: v })
   },
+
+  /** 拖拽时更新落点判定（只有「从面板拖新件」才需要判定） */
+  setDropTarget: (goalId) => {
+    const s = get()
+    if (!goalId || s.dragging?.kind !== 'palette') {
+      if (s.dropTarget !== null) set({ dropTarget: null })
+      return
+    }
+    const check = checkPlacement(s.dragging.item.kind, s.stacks[goalId] ?? [])
+    const cur = s.dropTarget
+    if (cur && cur.goalId === goalId && cur.legal === check.ok && cur.reason === check.reason) {
+      return
+    }
+    set({ dropTarget: { goalId, legal: check.ok, reason: check.reason } })
+  },
+
+  clearPlaceError: () => set({ placeError: null }),
 
   setQuality: (q) => set({ quality: q }),
 
@@ -168,6 +229,8 @@ export const useApp = create<AppState>((set, get) => ({
       dragging: null,
       hoverGoalId: null,
       overTrash: false,
+      dropTarget: null,
+      placeError: null,
     }),
 }))
 

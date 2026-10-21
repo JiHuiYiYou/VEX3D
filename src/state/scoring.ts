@@ -26,17 +26,22 @@
  *
  * 分值：联盟色 Pin 半 5 分，被拥有的黄色 Pin 半 10 分。
  *
- * ── 本引擎采用的物理模型（与 CAD 实测几何对表，见 §七 开放项）──
+ * ── 本引擎采用的物理模型（CAD 装配树实测 + 手册图 SC5-1/2）──
  *   · 一个「件」= 一个完整的 Pin（两个同色系半体）或一个完整的 Cup（透明半 + 灰半）。
+ *   · **Pin = 翻边对翻边**（线轴，腰在中间，高 165）；**Cup = 杯口对杯口**（沙漏，
+ *     两端敞口宽沿、中间 Ø59 细腰，高 164.5）—— 两种件形状不同，别混。
  *   · 堆栈自下而上：stack[0] 最靠近 Goal。
- *   · 罩住关系：stack[i+1] 罩住 stack[i]。若 stack[i+1] 是 Cup，罩住它的是该 Cup 的
- *     **下半**（把东西装进去的那一半）；下半透明 → 下方的 Pin 半体「嵌在透明半体里」→ 计分；
- *     下半不透明(灰) → 「被不透明杯遮挡」→ 不计分。
- *   · 若 stack[i+1] 是 Pin，规则只承认「被 Cup 覆盖」才挡分，所以不算遮挡。
- *   · 一个 Pin 的下半只被自己的上半（非 Cup）盖住 → 永远计分；上半可能被上方的 Cup 挡住。
- *     这正好对应手册说的「一个 placed 的 Pin 可以有 1 个或 2 个得分端子」。
- *   · Placed 判定（<SC2>a）：只有「直接嵌在 Goal 上」或「嵌在一个与已 placed 的 Pin 啮合的
- *     Cup 里」的 Pin 才是 placed；直接压在另一个 Pin 上（中间没有 Cup）的不算 placed。
+ *   · **罩住关系（关键）**：
+ *       · Pin 的**上半**被**上面那个 Cup 的下半**罩住  → 用 aboveCup.halves[0] 判
+ *       · Pin 的**下半**被**下面那个 Cup 的上半**罩住  → 用 belowCup.halves[1] 判
+ *     罩住的那一半若是**透明(clear)** → 该端子「嵌在透明半体里」→ 照常计分；
+ *     若是**不透明(gray)** → 「被不透明杯遮挡」→ 不得分。
+ *     等价的说法：Cup 的下半罩住它**下面**那个 Pin 的上半；Cup 的上半罩住它**上面**那个 Pin 的下半。
+ *   · Goal 不是 Cup，**不挡分**：直接放在 Goal 上的 Pin 两半都照常计分。
+ *   · 摆放规则：Pin 只能放在 Cup 上，或直接放在 Goal 上；Cup 只能放在 Pin 上。
+ *     所以栈必然是 Pin/Cup/Pin/Cup… 交替，第 0 件是直接嵌在 Goal 上的 Pin。
+ *   · Placed 判定（<SC2>a）：直接嵌在 Goal 上的 Pin 是 placed；嵌在一个「与已 placed 的
+ *     Pin 啮合的 Cup」里的 Pin 也是 placed；压在另一个 Pin 上（中间没有 Cup）的不算。
  */
 
 import type { Alliance, CupHalf, GoalSpec, PinColor, QuadrantId, ToggleState } from '@/data/fieldSpec'
@@ -55,6 +60,8 @@ export interface HalfResult {
   placed: boolean
   /** 是否计分（满足 <SC3>） */
   scored: boolean
+  /** 是否被 Cup 罩住（罩住的那一半是透明还是灰决定计不计分） */
+  covered: boolean
   alliance: Alliance | null
   points: number
   /** 判定理由，直接显示给用户，方便按官方口径核对 */
@@ -114,6 +121,9 @@ export function yellowOwner(
 /**
  * <SC2>a：判断栈里每一件是否为 placed 的 Pin。
  * 只有 Pin 需要判定；Cup 只是「罩子」，不参与 placed。
+ *
+ * 合法摞是 Pin/Cup 交替：栈底 Pin 直接嵌在 Goal 上 → placed；
+ * 其余 Pin 嵌在一个 Cup 里，而那个 Cup 又与它下面那个 Pin 啮合 → placed。
  */
 function computePlacedFlags(stack: StackItem[]): boolean[] {
   const placed = stack.map(() => false)
@@ -123,14 +133,12 @@ function computePlacedFlags(stack: StackItem[]): boolean[] {
     if (i === 0) {
       // 直接嵌在 Goal 上
       placed[i] = true
-    } else {
-      const below = stack[i - 1]
-      if (below.kind === 'cup') {
-        // 嵌在一个 Cup 里；该 Cup 必须与「另一个已 placed 的 Pin」啮合
-        if (i - 2 >= 0 && placed[i - 2]) placed[i] = true
-      }
-      // below 是 Pin → 既没嵌在 Goal 上，也没嵌在 Cup 里 → 不算 placed
+      continue
     }
+    const below = stack[i - 1]
+    if (below.kind !== 'cup') continue
+    // 嵌在一个 Cup 里；该 Cup 必须与「另一个已 placed 的 Pin」啮合
+    if (i - 2 >= 0 && placed[i - 2]) placed[i] = true
   }
   return placed
 }
@@ -162,36 +170,39 @@ export function scoreGoal(
 
       // ── <SC3> 遮挡判定 ────────────────────────────────────────────
       // 一个 Pin 有两个端子：
-      //  · 下半可能套在**下面那个 Cup** 的腔体里 → 被那个 Cup 的下半罩着
-      //  · 上半可能被**上面那个 Cup** 罩着
+      //  · 下半被**下面那个 Cup 的上半**罩住（Cup 的上半正好罩住它上面那件的下半）
+      //  · 上半被**上面那个 Cup 的下半**罩住
       // 罩住的那一半若是**不透明(灰)** → 该端子不得分；
       // 若是**透明** → 「嵌在透明杯半体内」→ 仍然计分。
       let scored: boolean
       let coverReason: string
+      let covered = false
       if (halfIndex === 0) {
         if (belowCup) {
-          if (belowCup.halves[0] === 'clear') {
+          covered = true
+          if (belowCup.halves[1] === 'clear') {
             scored = placed
-            coverReason = '下半嵌在透明杯半体内 → 计分'
+            coverReason = '下半嵌在下方 Cup 的上半（透明半）里 → 计分'
           } else {
             scored = false
-            coverReason = '下半被不透明(灰)杯罩住 → 不计分'
+            coverReason = '下半被下方 Cup 的上半（不透明/灰半）遮住 → 不计分'
           }
         } else {
           scored = placed
-          coverReason = '下半未被 Cup 覆盖'
+          coverReason = '下半未被 Cup 覆盖 → 计分'
         }
       } else if (aboveCup) {
+        covered = true
         if (aboveCup.halves[0] === 'clear') {
           scored = placed
-          coverReason = '上半嵌在透明杯半体内 → 计分'
+          coverReason = '上半嵌在上方 Cup 的下半（透明半）里 → 计分'
         } else {
           scored = false
-          coverReason = '上半被不透明(灰)杯遮挡 → 不计分'
+          coverReason = '上半被上方 Cup 的下半（不透明/灰半）遮住 → 不计分'
         }
       } else {
         scored = placed
-        coverReason = '上半露在外面，未被 Cup 覆盖'
+        coverReason = '上半未被 Cup 覆盖 → 计分'
       }
 
       if (!placed) {
@@ -231,6 +242,7 @@ export function scoreGoal(
         color,
         placed,
         scored: finalScored,
+        covered,
         alliance: finalScored ? alliance : null,
         points: pointsAwarded,
         reason: finalScored ? `${ownReason}｜${coverReason}` : `${coverReason}｜${ownReason}`,
@@ -262,8 +274,43 @@ export function scoreField(input: ScoringInput): ScoreResult {
       placedHalves: r.halves.filter((h) => h.placed).length,
       scoredHalves: r.halves.filter((h) => h.scored).length,
     }
-    blocked += r.halves.filter((h) => h.placed && !h.scored).length
+    blocked += r.halves.filter((h) => h.covered && !h.scored).length
   }
 
   return { red, blue, halves, perGoal, blocked }
+}
+
+export interface PlacementCheck {
+  ok: boolean
+  /** 不合法时给用户看的中文原因 */
+  reason: string
+}
+
+/**
+ * 摆放合法性（用户给定口径）：
+ *
+ *   · **Pin 只能放在 Cup 上，或直接放在 Goal 上**（作为摞的最底下一个）
+ *   · **Cup 只能放在 Pin 上**
+ *   · Pin 叠 Pin、Cup 叠 Cup、Cup 直接放 Goal → 非法，UI 应当拒绝放置
+ *
+ * 所以合法的摞必然是 Pin / Cup / Pin / Cup … 交替。
+ *
+ * 注意：本文件被 `node tools/test_scoring.ts` 直接加载（原生剥离类型），
+ * 所以这里**只能用 type-only import**，不能引运行时依赖。
+ */
+export function checkPlacement(kind: 'pin' | 'cup', stack: StackItem[]): PlacementCheck {
+  const top = stack[stack.length - 1]
+  if (!top) {
+    return kind === 'pin'
+      ? { ok: true, reason: '' }
+      : { ok: false, reason: 'Cup 不能直接放在桩上：桩上只能先放 Pin' }
+  }
+  if (kind === 'pin') {
+    return top.kind === 'cup'
+      ? { ok: true, reason: '' }
+      : { ok: false, reason: 'Pin 不能叠在 Pin 上：Pin 只能放在 Cup 上' }
+  }
+  return top.kind === 'pin'
+    ? { ok: true, reason: '' }
+    : { ok: false, reason: 'Cup 不能叠在 Cup 上：Cup 只能放在 Pin 上' }
 }

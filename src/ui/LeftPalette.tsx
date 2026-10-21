@@ -58,11 +58,17 @@ function PinIcon({ halves }: { halves: readonly [string, string] }) {
   )
 }
 
+/**
+ * Cup = **杯口对杯口**的沙漏：两端是敞口的大翻边，中间是 Ø59 的细腰。
+ * （Pin 才是翻边对翻边的线轴 —— 两者形状不同，别搞混。）
+ */
 function CupIcon({ halves }: { halves: readonly [string, string] }) {
   return (
     <svg viewBox="0 0 60 84" className="piece-icon">
-      <HalfIcon color={halves[0]} x={4} y={4} w={52} h={38} />
-      <HalfIcon color={halves[1]} x={12} y={42} w={36} h={38} />
+      {/* 上半（halves[1]）：翻边在上、杯口朝下 */}
+      <HalfIcon color={halves[1]} inverted x={4} y={4} w={52} h={38} />
+      {/* 下半（halves[0]）：翻边在下、杯口朝上 */}
+      <HalfIcon color={halves[0]} x={4} y={42} w={52} h={38} />
     </svg>
   )
 }
@@ -72,6 +78,7 @@ export function LeftPalette() {
   const flipped = useApp((s) => s.paletteFlipped)
   const togglePaletteFlip = useApp((s) => s.togglePaletteFlip)
   const setDragging = useApp((s) => s.setDragging)
+  const dropTarget = useApp((s) => s.dropTarget)
   const goal = selectedGoalId ? GOAL_BY_ID[selectedGoalId] : null
 
   const startDrag = useCallback(
@@ -102,7 +109,8 @@ export function LeftPalette() {
           <br />
           · <b>翻转</b>按钮会交换每一件的上下两半
           <br />
-          · 拖到屏幕上可叠好几层
+          · 叠放规则：<b>Pin 只能放在 Cup 上或直接放在桩上</b>，
+          <b>Cup 只能放在 Pin 上</b>，其它组合算非法
         </div>
       ) : (
         <>
@@ -148,8 +156,15 @@ export function LeftPalette() {
           <div className="hint small">
             把上面任意一件<b>拖</b>到场地上的桩即可放置，可以叠多层。
             <br />
+            <b>Pin 只能放在 Cup 上或直接放在桩上</b>，<b>Cup 只能放在 Pin 上</b>。
+            <br />
             已放置的件：<b>拖到画面边缘</b>四周会亮起红光、弹出红色垃圾桶，丢进去删除。
           </div>
+
+          {/* 拖拽过程中实时提示：当前落点非法 */}
+          {dropTarget && !dropTarget.legal && (
+            <div className="hint small warn">不能放在这里：{dropTarget.reason}</div>
+          )}
         </>
       )}
     </aside>

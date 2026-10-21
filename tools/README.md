@@ -16,6 +16,12 @@ tools/
   raw_tree.py         independent (non-OCCT) STEP parser, used as a cross-check
   raw_world.py        resolves the assembly with the raw parser only
   requirements.txt
+
+  # --- not part of the pipeline: browser-side checks (need the dev server) ---
+  verify_ui.py        Playwright end-to-end checks (stacking rules, scoring, trash…)
+  shot_stack.py       close-up screenshot of a Pin/Cup nest, for eyeballing
+  shots.py            screenshots after the CAD assets have finished loading
+  test_scoring.ts     scoring-engine regression tests (`npm test`)
 ```
 
 ## Running
@@ -112,7 +118,26 @@ base centre at the origin.
 Each half is exported with **its wide flange at the origin and the narrow
 tip along -Z** (i.e. the tip points down).  The app's -90 deg X rotation
 turns that into three.js -Y, which is the convention the app authors
-halves in (`src/scene/Goals.tsx`: "翻边在原点，尖端在 -Y").
+halves in (`src/scene/stackLayout.ts`: "翻边在原点，尖端在 -Y").
+
+### How the two halves of a piece are joined
+
+Measured from the CAD assembly tree — **the two kinds are NOT joined the same
+way**, and getting this wrong breaks the shape, the flip and the scoring:
+
+| piece | the two halves are joined | looks like | total height |
+|---|---|---|---|
+| **Pin** | **flange to flange** | a spool: narrow tips out, wide waist in the middle | 165.0 |
+| **Cup** | **mouth to mouth** | an hourglass: wide open rims out, a Ø59 waist in the middle | 164.5 |
+
+In the STEP tree the Cup's Clear half sits at `y=-85` unrotated (flange down,
+mouth up) and the Dark Gray half at `y=+85` rotated 180° about Z (mouth down,
+flange up) — so the two **mouths** meet in the middle.  The Pin's halves are
+the other way round: the flange-to-flange joint is in the middle.
+
+See `src/scene/stackLayout.ts` (`halfTransform`) for how the app reproduces
+this, and `src/state/scoring.ts` for which half of the cup covers which half
+of the pin.
 
 ## What is in field.glb / field_slim.glb
 
