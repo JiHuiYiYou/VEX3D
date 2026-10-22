@@ -121,6 +121,7 @@ function Scene({ onError }: { onError?: (msg: string) => void }) {
           if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5) {
             selectGoal(null)
             useApp.getState().selectItem(null)
+            useApp.getState().setPending(null) // 手里的件放下了
           }
         }}
       >

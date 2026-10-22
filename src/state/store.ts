@@ -38,6 +38,21 @@ export interface LooseItem {
 /** 画质档位：给弱机器（学校笔记本 / 投影仪）留的退路 */
 export type Quality = 'high' | 'medium' | 'low'
 
+/**
+ * 「待放置的件」—— 先选件、再点 goal 就能放上去（不用拖）。
+ *
+ * · source='palette'：从左侧面板拿的（点一下面板上的件就是「端着」它）
+ * · source='loose'  ：场上捡起来的散件（点它一下就是「端着」它）
+ */
+export interface PendingItem {
+  item: StackItem
+  source: 'palette' | 'loose'
+  /** 散件来源：它自己的 id（放上 goal 后要从散件里删掉） */
+  looseId?: string
+  /** 面板来源：variantId（翻转开关变了要跟着重建） */
+  variantId?: string
+}
+
 export const QUALITY_LABEL: Record<Quality, string> = {
   high: '高',
   medium: '中',
@@ -58,6 +73,11 @@ export interface AppState {
   selectedToggleId: QuadrantId | null
   /** 当前选中的已放置得分物 */
   selectedItemId: string | null
+  /**
+   * 「待放置的件」（先选件 → 再点 goal 放上去）。
+   * 放着的时候左侧面板会显示提示，合法落点的 goal 会亮绿环。
+   */
+  pending: PendingItem | null
   /** 左侧面板的「翻转」总开关 */
   paletteFlipped: boolean
   /**
@@ -91,6 +111,8 @@ export interface AppState {
   /** 选中一个 toggle（左侧面板切到那个 toggle 的设置），与选 goal 互斥 */
   selectToggle: (id: QuadrantId | null) => void
   selectItem: (id: string | null) => void
+  /** 「端着」一个件，等着点 goal 放上去（null = 不端了） */
+  setPending: (p: PendingItem | null) => void
   /** 设置赛局结束时中场的机器人数量 */
   setMidfieldCounts: (red: number, blue: number) => void
   togglePaletteFlip: () => void
@@ -155,6 +177,7 @@ export const useApp = create<AppState>((set, get) => ({
   selectedGoalId: null,
   selectedToggleId: null,
   selectedItemId: null,
+  pending: null,
   paletteFlipped: false,
   midfieldCounts: { red: 0, blue: 0 },
 
@@ -185,6 +208,8 @@ export const useApp = create<AppState>((set, get) => ({
 
   selectItem: (id) => set({ selectedItemId: id }),
 
+  setPending: (p) => set({ pending: p }),
+
   setMidfieldCounts: (red, blue) =>
     set({
       midfieldCounts: {
@@ -193,7 +218,17 @@ export const useApp = create<AppState>((set, get) => ({
       },
     }),
 
-  togglePaletteFlip: () => set((s) => ({ paletteFlipped: !s.paletteFlipped })),
+  togglePaletteFlip: () =>
+    set((s) => {
+      const flipped = !s.paletteFlipped
+      // 手着的那个件也跟着翻（不然面板显示和手里的件对不上）
+      let pending = s.pending
+      if (pending && pending.source === 'palette' && pending.variantId) {
+        const item = makePaletteItem(pending.variantId, flipped)
+        if (item) pending = { ...pending, item }
+      }
+      return { paletteFlipped: flipped, pending }
+    }),
 
   /**
    * 放置的唯一入口：先判合法性，非法就**拒绝**（并记下原因给 UI 弹提示）。
@@ -210,6 +245,7 @@ export const useApp = create<AppState>((set, get) => ({
     set((s) => ({
       stacks: { ...s.stacks, [goalId]: [...(s.stacks[goalId] ?? []), item] },
       placeError: null,
+      pending: null, // 放上去了就不「端着」了
     }))
     return true
   },
@@ -288,7 +324,12 @@ export const useApp = create<AppState>((set, get) => ({
       loose: s.loose.map((it) => (it.id === id ? { ...it, x, y } : it)),
     })),
 
-  removeLoose: (id) => set((s) => ({ loose: s.loose.filter((it) => it.id !== id) })),
+  removeLoose: (id) =>
+    set((s) => ({
+      loose: s.loose.filter((it) => it.id !== id),
+      // 手里正端着它 → 删了就没了，别留个空壳
+      pending: s.pending?.looseId === id ? null : s.pending,
+    })),
 
   /** 一键摆成官方开局的样子（= 重置 + 灌预设） */
   applySetup: (setup) =>
@@ -298,6 +339,7 @@ export const useApp = create<AppState>((set, get) => ({
       selectedGoalId: null,
       selectedItemId: null,
       selectedToggleId: null,
+      pending: null,
       dragging: null,
       placeError: null,
     }),
@@ -334,6 +376,7 @@ export const useApp = create<AppState>((set, get) => ({
       selectedGoalId: null,
       selectedToggleId: null,
       selectedItemId: null,
+      pending: null,
       paletteFlipped: false,
       midfieldCounts: { red: 0, blue: 0 },
       dragging: null,

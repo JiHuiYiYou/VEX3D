@@ -367,11 +367,26 @@ def main():
         deleted = False
         trash_info = {"found": False}   # 找不到件时也别让脚本崩（下面要用它报错）
         if found:
-            # 已放置的件就在桩的上方，向上找几行点一下选中它
+            # 已放置的件就在桩的上方，向上找几行点一下选中它。
+            # ★ 用 goal 的**中心**屏幕坐标（found 只是「点中了 goal 的那个点」，
+            #   可能落在 goal 的边缘上，扫一圈也够不着摞在上面的件）
+            goal_c = page.evaluate(
+                """(gid) => {
+                  const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+                  const g = (window.__goalPositions||[]).find(x => x.id === gid);
+                  if (!g) return null;
+                  const v = new b.camera.position.constructor(g.pos[0], g.pos[1], g.pos[2]);
+                  v.project(b.camera);
+                  const r = b.domElement.getBoundingClientRect();
+                  return [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+                }""",
+                page.evaluate("() => window.__vex3d.getState().selectedGoalId"),
+            )
+            base = goal_c or found
             item_pt = None
             for dy in (-50, -38, -26, -14, -2, 10, 22, 34, 46):
                 for dx in (-30, -15, 0, 15, 30):
-                    px, py = found[0] + dx, found[1] + dy
+                    px, py = base[0] + dx, base[1] + dy
                     page.mouse.click(px, py)
                     time.sleep(0.1)
                     if page.evaluate("() => !!window.__vex3d.getState().selectedItemId"):
@@ -691,18 +706,133 @@ def main():
               f"躺 {setup['lying']} / 插 {setup['nested']}")
         page.screenshot(timeout=180000, path=os.path.join(SHOTS, "07-setup.png"))
 
+        # 单击散件 = 只是选中：不能把它挪走，更不能删掉
+        # （以前单击会被当成「丢到地面」，落点用射线打水平面算 → 件飞到天边 ✗）
+        click_cands = page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+              const r = b.domElement.getBoundingClientRect();
+              const out = [];
+              for (const x of st.loose) {
+                // 找「孤零零」的散件（附近没有别的件，免得点到邻居身上）
+                if (x.nested || x.axis) continue;
+                if (st.loose.some(o => o !== x && Math.abs(o.x - x.x) < 60 && Math.abs(o.y - x.y) < 60)) continue;
+                const v = new b.camera.position.constructor(x.x, 40, -x.y);
+                v.project(b.camera);
+                out.push({ id: x.id, x: x.x, y: x.y, n: st.loose.length,
+                           pt: [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height] });
+                if (out.length >= 40) break;
+              }
+              return out;
+            }"""
+        )
+        # 挑一个**落在画布内**的（画布只有 ~500 px 宽，摆在角落的件可能投影到面板底下）
+        click_res = next(
+            (
+                c
+                for c in click_cands
+                if box["x"] + 20 < c["pt"][0] < box["x"] + box["width"] - 20
+                and box["y"] + 20 < c["pt"][1] < box["y"] + box["height"] - 20
+            ),
+            None,
+        )
+        if click_res:
+            page.mouse.click(click_res["pt"][0], click_res["pt"][1])
+            time.sleep(0.5)
+            after_click = page.evaluate(
+                """(id) => {
+                  const st = window.__vex3d.getState();
+                  const it = st.loose.find(x => x.id === id);
+                  return { n: st.loose.length, sel: st.selectedItemId,
+                           x: it ? it.x : null, y: it ? it.y : null };
+                }""",
+                click_res["id"],
+            )
+            check("单击散件只是选中，不会挪走或删掉",
+                  after_click["n"] == click_res["n"]
+                  and after_click["sel"] == click_res["id"]
+                  and after_click["x"] == click_res["x"]
+                  and after_click["y"] == click_res["y"],
+                  f"{click_res['id']} @({click_res['x']:.0f},{click_res['y']:.0f}) → {after_click}")
+
+        # 端起一个散件（点它一下）→ 再点一个空的 goal → 散件进那个 goal 的摞（不用拖）
+        pick = page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+              const r = b.domElement.getBoundingClientRect();
+              const inCanvas = (pt) => pt[0] > r.left+20 && pt[0] < r.right-20
+                                    && pt[1] > r.top+20 && pt[1] < r.bottom-20;
+              const project = (x, y, z) => {          // 场地坐标 → 屏幕
+                const v = new b.camera.position.constructor(x, z, -y);
+                v.project(b.camera);
+                return [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+              };
+              const project3 = (p) => {               // three 系坐标 → 屏幕
+                const v = new b.camera.position.constructor(p[0], p[1], p[2]);
+                v.project(b.camera);
+                return [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+              };
+              // 4 个联盟 goal 开局是空的 → 挑一个**落在画布里、而且周围没有散件**的
+              // （散件挡在 goal 前面的话，点到的就是散件而不是 goal）
+              let goal = null;
+              for (const id of ['g-r1', 'g-r2', 'g-b1', 'g-b2']) {
+                const g = (window.__goalPositions||[]).find(p => p.id === id);
+                if (!g) continue;
+                // g.pos 是 three 系（[X, 0, -Y]），散件的坐标是场地系（x, y）
+                if (st.loose.some(o => Math.abs(o.x - g.pos[0]) < 220 && Math.abs(o.y + g.pos[2]) < 220)) continue;
+                const pt = project3(g.pos);
+                if (inCanvas(pt)) { goal = { id, pt }; break; }
+              }
+              if (!goal) return null;
+              for (const x of st.loose) {
+                if (x.kind !== 'pin' || x.nested || x.axis) continue;
+                // 周围没有别的件 → 点到的就是这个 pin（不是被挡住的邻居）
+                if (st.loose.some(o => o !== x && Math.abs(o.x - x.x) < 120 && Math.abs(o.y - x.y) < 120)) continue;
+                const pt = project(x.x, x.y, 40);
+                if (!inCanvas(pt)) continue;
+                return { id: x.id, n: st.loose.length, pt, gpt: goal.pt, gid: goal.id };
+              }
+              return null;
+            }"""
+        )
+        if pick:
+            page.mouse.click(pick["pt"][0], pick["pt"][1])
+            time.sleep(0.5)
+            armed = page.evaluate(
+                "() => { const s = window.__vex3d.getState(); return s.pending ? s.pending.source : null }"
+            )
+            check("点散件 = 把它端起来（等着点 goal 放上去）", armed == "loose", str(armed))
+            page.mouse.click(pick["gpt"][0], pick["gpt"][1])
+            time.sleep(0.7)
+            placed = page.evaluate(
+                """(gid) => { const s = window.__vex3d.getState();
+                  return { n: s.loose.length, g: (s.stacks[gid]||[]).length, pending: !!s.pending } }""",
+                pick["gid"],
+            )
+            check("端着的散件点一下 goal 就放上去（不用拖）",
+                  placed["g"] == 1 and placed["n"] == pick["n"] - 1 and not placed["pending"],
+                  f"{pick['gid']}: {pick['n']} → {placed}")
+
         # 散件能删：拖一个到画布边缘
         loose_before = page.evaluate("() => window.__vex3d.getState().loose.length")
         loose_pt = page.evaluate(
             """() => {
               const st = window.__vex3d.getState();
-              const it = st.loose.find(x => Math.abs(x.x) < 1900 && Math.abs(x.y) < 1900);
-              if (!it) return null;
               const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
-              const v = new b.camera.position.constructor(it.x, 40, -it.y);
-              v.project(b.camera);
               const r = b.domElement.getBoundingClientRect();
-              return [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+              // 挑一个**投影落在画布里**的散件（画布只有 ~500 px 宽，边缘的件会投到面板底下）
+              for (const it of st.loose) {
+                if (Math.abs(it.x) > 1900 || Math.abs(it.y) > 1900) continue;
+                const v = new b.camera.position.constructor(it.x, 40, -it.y);
+                v.project(b.camera);
+                const pt = [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+                if (pt[0] > r.left+15 && pt[0] < r.right-15 && pt[1] > r.top+15 && pt[1] < r.bottom-15) {
+                  return pt;
+                }
+              }
+              return null;
             }"""
         )
         if loose_pt:

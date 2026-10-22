@@ -11,9 +11,23 @@ export const dragPointer = {
   clientY: 0,
   /** 指针是否在 3D 画布上 */
   overCanvas: false,
-  /** 本次拖拽是否由画布内的得分物发起（区别于从左侧面板发起） */
-  fromCanvas: false,
+  /**
+   * 本次按下之后指针**有没有真的移动过**。
+   *
+   * ★ 用来区分「点击」和「拖动」：
+   *   点击（没移动）→ 只选中，什么都不改；
+   *   拖动 → 才挪位置 / 放上 goal / 丢进垃圾桶。
+   *   少了这个判断，单击一个散件会把它当成「丢到地面」，
+   *   落点又是用射线打水平面算的（斜视角偏差极大）→ 件会飞到天边，像凭空消失 ✗
+   */
+  moved: false,
+  /** 本次按下的位置（client 坐标），用来算 moved */
+  startX: 0,
+  startY: 0,
 }
+
+/** 指针移动多少像素才算「拖动」（而不是点击） */
+export const DRAG_THRESHOLD = 4
 
 /** 离 3D 画布边缘多少像素内算「靠近垃圾桶」 */
 export const TRASH_EDGE = 90
@@ -53,5 +67,7 @@ export function resetDragPointer() {
   dragPointer.clientX = 0
   dragPointer.clientY = 0
   dragPointer.overCanvas = false
-  dragPointer.fromCanvas = false
+  dragPointer.moved = false
+  dragPointer.startX = 0
+  dragPointer.startY = 0
 }

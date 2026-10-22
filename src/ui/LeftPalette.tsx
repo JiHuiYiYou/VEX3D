@@ -1,6 +1,8 @@
 import { useCallback } from 'react'
 import { useApp, makePaletteItem, MAX_ROBOTS_PER_ALLIANCE } from '@/state/store'
+import type { PendingItem } from '@/state/store'
 import { PIN_VARIANTS, CUP_VARIANTS, COLORS, GOAL_BY_ID, goalKind, goalName } from '@/data/fieldSpec'
+import { PIN_COLOR_LABEL, CUP_HALF_LABEL } from '@/data/terms'
 import { ToggleView } from './ToggleView'
 
 const HEX: Record<string, string> = {
@@ -73,9 +75,18 @@ function CupIcon({ halves }: { halves: readonly [string, string] }) {
   )
 }
 
+/** 「端着的件」叫什么（提示文字用） */
+function pendingLabel(p: PendingItem): string {
+  if (p.item.kind === 'pin') {
+    return `pin ${PIN_COLOR_LABEL[p.item.halves[0]]} / ${PIN_COLOR_LABEL[p.item.halves[1]]}`
+  }
+  return `cup ${CUP_HALF_LABEL[p.item.halves[0]]} / ${CUP_HALF_LABEL[p.item.halves[1]]}`
+}
+
 export function LeftPalette() {
   const selectedGoalId = useApp((s) => s.selectedGoalId)
   const selectedToggleId = useApp((s) => s.selectedToggleId)
+  const pending = useApp((s) => s.pending)
   const flipped = useApp((s) => s.paletteFlipped)
   const togglePaletteFlip = useApp((s) => s.togglePaletteFlip)
   const setDragging = useApp((s) => s.setDragging)
@@ -94,15 +105,28 @@ export function LeftPalette() {
   )
 
   /**
-   * 单击 → 直接放在**已选中的那个 goal** 上（不用拖）。
+   * 单击 → 两种走法：
+   *  · **已经选好了 goal** → 直接放上去（老规矩）
+   *  · **没选 goal** → 先「端着」这个件，接着点场上的一个 goal 就放上去（不用拖）
+   *    （再点一次同一个件 = 取消）
+   *
    * 叠放不合法时 `placeItem` 会拒绝并弹提示 ✓（比如 pin 叠 pin）。
    */
-  const placeOnSelectedGoal = useCallback((variantId: string) => {
+  const onPaletteClick = useCallback((variantId: string) => {
     const st = useApp.getState()
-    if (!st.selectedGoalId) return
     const item = makePaletteItem(variantId, st.paletteFlipped)
     if (!item) return
-    st.placeItem(st.selectedGoalId, item)
+    if (st.selectedGoalId) {
+      const ok = st.placeItem(st.selectedGoalId, item)
+      // 放不上去（非法叠放）→ 把它留着「端着」，换个 goal 再点就行
+      if (!ok) st.setPending({ item, source: 'palette', variantId })
+      return
+    }
+    if (st.pending?.source === 'palette' && st.pending.variantId === variantId) {
+      st.setPending(null)
+    } else {
+      st.setPending({ item, source: 'palette', variantId })
+    }
   }, [])
 
   const flip = (halves: readonly [string, string]) =>
@@ -145,9 +169,12 @@ export function LeftPalette() {
             {PIN_VARIANTS.map((v) => (
               <div
                 key={v.id}
-                className="palette-item"
+                className={
+                  'palette-item' +
+                  (pending?.source === 'palette' && pending.variantId === v.id ? ' armed' : '')
+                }
                 onPointerDown={startDrag(v.id)}
-                onClick={() => placeOnSelectedGoal(v.id)}
+                onClick={() => onPaletteClick(v.id)}
                 title={title(v.label)}
               >
                 <PinIcon halves={flip(v.halves)} />
@@ -157,9 +184,12 @@ export function LeftPalette() {
             {CUP_VARIANTS.map((c) => (
               <div
                 key={c.id}
-                className="palette-item"
+                className={
+                  'palette-item' +
+                  (pending?.source === 'palette' && pending.variantId === c.id ? ' armed' : '')
+                }
                 onPointerDown={startDrag(c.id)}
-                onClick={() => placeOnSelectedGoal(c.id)}
+                onClick={() => onPaletteClick(c.id)}
                 title={title(`${c.label}（cup ${c.id === 'cup' ? '正' : '反'}）`)}
               >
                 <CupIcon halves={c.halves} />
@@ -167,6 +197,14 @@ export function LeftPalette() {
               </div>
             ))}
           </div>
+
+          {/* 「端着」一个件：接着点场上的一个 goal 就放上去 */}
+          {pending && (
+            <div className="hint small pending-hint">
+              已端着：<b>{pendingLabel(pending)}</b> —— 点场上的一个 <b>goal</b> 放上去
+              {pending.source === 'palette' ? '（再点一次这个件 = 取消）' : '（点空白处 = 放下）'}。
+            </div>
+          )}
 
           {/* 中场：黄色 pin 归「中场机器人数多的一方」（<SC5>b） */}
           {isMidfield && <MidfieldCounts />}

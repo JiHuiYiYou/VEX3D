@@ -6,6 +6,7 @@ import { materialFor } from './materials'
 import { COLORS, toThree } from '@/data/fieldSpec'
 import type { GoalSpec } from '@/data/fieldSpec'
 import type { StackItem } from '@/state/scoring'
+import { checkPlacement } from '@/state/scoring'
 import { sceneBridge } from './bridge'
 import { halfTransform, layoutStack, stackTopY } from './stackLayout'
 
@@ -279,8 +280,19 @@ export function Goal({
         userData={{ goalId: spec.id }}
         onPointerDown={(e) => {
           e.stopPropagation()
-          selectGoal(spec.id)
-          selectItem(null)
+          const st = useApp.getState()
+          const pending = st.pending
+          if (pending) {
+            // 「端着」着一个件 → 点 goal 就放上去（合法才放，非法会弹提示）
+            const ok = st.placeItem(spec.id, pending.item)
+            st.selectGoal(spec.id)
+            if (ok && pending.source === 'loose' && pending.looseId) {
+              st.removeLoose(pending.looseId)
+            }
+          } else {
+            selectGoal(spec.id)
+            selectItem(null)
+          }
         }}
         onPointerOver={() => {
           // 拖拽时由拖拽控制器统一管理悬停，避免两边打架
@@ -328,6 +340,7 @@ export function Goals({ goals }: { goals: GoalSpec[] }) {
   const hoverGoalId = useApp((s) => s.hoverGoalId)
   const dropTarget = useApp((s) => s.dropTarget)
   const dragging = useApp((s) => s.dragging)
+  const pending = useApp((s) => s.pending)
 
   return (
     <>
@@ -335,6 +348,9 @@ export function Goals({ goals }: { goals: GoalSpec[] }) {
         // 拖拽时：只有合法落点才高亮（非法时连悬停环都不给）
         const isDropTarget = dropTarget?.goalId === g.id
         const dropOk = !!dragging && isDropTarget && dropTarget!.legal
+        // 「端着」着一个件时：能放上去的 goal 都亮绿环（不用拖也知道能放哪）
+        const pendingOk =
+          !!pending && checkPlacement(pending.item.kind, stacks[g.id] ?? []).ok
         const hovered = hoverGoalId === g.id && (!dragging || dropOk)
         return (
           <Goal
@@ -344,7 +360,7 @@ export function Goals({ goals }: { goals: GoalSpec[] }) {
             selected={selectedGoalId === g.id}
             hovered={hovered}
             selectedItemId={selectedItemId}
-            dropOk={dropOk}
+            dropOk={dropOk || pendingOk}
           />
         )
       })}

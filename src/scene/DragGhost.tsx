@@ -71,11 +71,13 @@ export function DragGhost() {
         snapped = true
       }
     } else {
-      // 跟随光标（投到 y=200 的水平面）
-      const p = pickOnPlane(dragPointer.clientX, dragPointer.clientY, 200)
+      // 跟随光标：投到**地面**（y=0）—— 和松手时的落点用同一个平面，
+      // 件才会落在幽灵件指着的地方（斜视角下这个投影偏差很大，两个地方必须一致）
+      const p = pickOnPlane(dragPointer.clientX, dragPointer.clientY, 0)
       if (p) {
         x = p.x
-        y = 200
+        // 散件是躺在垫子上的 → 底端 0；从面板拖出来的新件「端着」→ 飘着 200
+        y = dragging.kind === 'loose' ? 0 : 200
         z = p.z
       }
     }

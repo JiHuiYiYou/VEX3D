@@ -55,6 +55,7 @@ export default function App() {
         st.selectGoal(null)
         st.selectToggle(null)
         st.selectItem(null)
+        st.setPending(null) // 手里的件放下了
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (st.selectedGoalId && st.selectedItemId) {
