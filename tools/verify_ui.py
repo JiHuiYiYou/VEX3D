@@ -756,7 +756,7 @@ def main():
                   and after_click["y"] == click_res["y"],
                   f"{click_res['id']} @({click_res['x']:.0f},{click_res['y']:.0f}) → {after_click}")
 
-        # 端起一个散件（点它一下）→ 再点一个空的 goal → 散件进那个 goal 的摞（不用拖）
+        # 场上的得分物：点它只是「选中」；再点 goal 优先「选中 goal」，不会把件放上去
         pick = page.evaluate(
             """() => {
               const st = window.__vex3d.getState();
@@ -801,19 +801,40 @@ def main():
             page.mouse.click(pick["pt"][0], pick["pt"][1])
             time.sleep(0.5)
             armed = page.evaluate(
-                "() => { const s = window.__vex3d.getState(); return s.pending ? s.pending.source : null }"
+                "() => { const s = window.__vex3d.getState(); return s.pending ? 'armed' : null }"
             )
-            check("点散件 = 把它端起来（等着点 goal 放上去）", armed == "loose", str(armed))
+            check("点场上的得分物只是选中，不会被「端起来」", armed is None, str(armed))
             page.mouse.click(pick["gpt"][0], pick["gpt"][1])
             time.sleep(0.7)
             placed = page.evaluate(
                 """(gid) => { const s = window.__vex3d.getState();
-                  return { n: s.loose.length, g: (s.stacks[gid]||[]).length, pending: !!s.pending } }""",
+                  return { n: s.loose.length, g: (s.stacks[gid]||[]).length,
+                           goal: s.selectedGoalId, pending: !!s.pending } }""",
                 pick["gid"],
             )
-            check("端着的散件点一下 goal 就放上去（不用拖）",
-                  placed["g"] == 1 and placed["n"] == pick["n"] - 1 and not placed["pending"],
+            check("点 goal 优先「选中 goal」，不会把场上的件放上去",
+                  placed["g"] == 0 and placed["n"] == pick["n"]
+                  and placed["goal"] == pick["gid"],
                   f"{pick['gid']}: {pick['n']} → {placed}")
+
+            # 面板上的件：点一下 = 端起来 → 再点一个空 goal → 放上去（不用拖）
+            page.evaluate("() => window.__vex3d.getState().selectGoal(null)")
+            time.sleep(0.3)
+            page.locator(".palette-item").first.click()
+            time.sleep(0.4)
+            armed2 = page.evaluate(
+                "() => { const s = window.__vex3d.getState(); return s.pending ? s.pending.item.kind : null }"
+            )
+            check("点面板上的件 = 把它端起来（等着点 goal 放上去）", armed2 == "pin", str(armed2))
+            page.mouse.click(pick["gpt"][0], pick["gpt"][1])
+            time.sleep(0.7)
+            placed2 = page.evaluate(
+                """(gid) => { const s = window.__vex3d.getState();
+                  return { g: (s.stacks[gid]||[]).length, pending: !!s.pending } }""",
+                pick["gid"],
+            )
+            check("端着的件点一下 goal 就放上去（不用拖）",
+                  placed2["g"] == 1 and not placed2["pending"], f"{pick['gid']} → {placed2}")
 
         # 散件能删：拖一个到画布边缘
         loose_before = page.evaluate("() => window.__vex3d.getState().loose.length")

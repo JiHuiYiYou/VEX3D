@@ -39,16 +39,13 @@ export interface LooseItem {
 export type Quality = 'high' | 'medium' | 'low'
 
 /**
- * 「待放置的件」—— 先选件、再点 goal 就能放上去（不用拖）。
+ * 「待放置的件」—— 从左侧面板拿一个件、接着点 goal 就放上去（不用拖）。
  *
- * · source='palette'：从左侧面板拿的（点一下面板上的件就是「端着」它）
- * · source='loose'  ：场上捡起来的散件（点它一下就是「端着」它）
+ * ⚠️ 只有**面板上的件**会「端着」；场上的得分物点 goal 的优先级是「选中那个 goal」，
+ *    要把场上的件放进 goal 请直接拖（`LooseItems.tsx` 里刻意不 setPending）。
  */
 export interface PendingItem {
   item: StackItem
-  source: 'palette' | 'loose'
-  /** 散件来源：它自己的 id（放上 goal 后要从散件里删掉） */
-  looseId?: string
   /** 面板来源：variantId（翻转开关变了要跟着重建） */
   variantId?: string
 }
@@ -166,7 +163,7 @@ const initialToggles = (): Record<QuadrantId, ToggleState> => ({
 /** 画质初值：可以用 ?quality=low 强制（弱机器 / 自动化测试） */
 const initialQuality = (): Quality => {
   const q = new URLSearchParams(window.location.search).get('quality')
-  return q === 'low' || q === 'medium' || q === 'high' ? q : 'high'
+  return q === 'low' || q === 'medium' || q === 'high' ? q : 'medium'
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -223,7 +220,7 @@ export const useApp = create<AppState>((set, get) => ({
       const flipped = !s.paletteFlipped
       // 手着的那个件也跟着翻（不然面板显示和手里的件对不上）
       let pending = s.pending
-      if (pending && pending.source === 'palette' && pending.variantId) {
+      if (pending?.variantId) {
         const item = makePaletteItem(pending.variantId, flipped)
         if (item) pending = { ...pending, item }
       }
@@ -324,12 +321,7 @@ export const useApp = create<AppState>((set, get) => ({
       loose: s.loose.map((it) => (it.id === id ? { ...it, x, y } : it)),
     })),
 
-  removeLoose: (id) =>
-    set((s) => ({
-      loose: s.loose.filter((it) => it.id !== id),
-      // 手里正端着它 → 删了就没了，别留个空壳
-      pending: s.pending?.looseId === id ? null : s.pending,
-    })),
+  removeLoose: (id) => set((s) => ({ loose: s.loose.filter((it) => it.id !== id) })),
 
   /** 一键摆成官方开局的样子（= 重置 + 灌预设） */
   applySetup: (setup) =>

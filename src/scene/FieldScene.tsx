@@ -165,7 +165,8 @@ export function FieldScene({ onError }: { onError?: (msg: string) => void }) {
   return (
     <div ref={canvasRef} className="canvas-wrap">
       <Canvas
-        shadows={quality !== 'low'}
+        /* three 0.186 里 PCFSoftShadowMap 已经没了（会被降级并打警告）→ 直接用 PCF */
+        shadows={quality !== 'low' ? 'percentage' : false}
         dpr={dpr}
         frameloop="demand"
         camera={initialCamera}

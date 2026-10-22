@@ -51,7 +51,6 @@ export function LooseItems() {
   const loose = useApp((s) => s.loose)
   const setDragging = useApp((s) => s.setDragging)
   const selectItem = useApp((s) => s.selectItem)
-  const setPending = useApp((s) => s.setPending)
 
   // 伪装的 StackItem —— 半体摆放只看 kind 和 baseY
   const items = useMemo(
@@ -81,8 +80,8 @@ export function LooseItems() {
             onPointerDown={(e) => {
               e.stopPropagation()
               selectItem(it.id)
-              // 「端着」它：接着点场上的一个 goal 就能放上去（不用拖）
-              setPending({ item: pseudo, source: 'loose', looseId: it.id })
+              // ★ 只是**选中**：不「端着」它 —— 场上的件点 goal 的优先级是「选中那个 goal」，
+              //   要把场上的件放进 goal 请直接拖。
               setDragging({ kind: 'loose', item: pseudo, looseId: it.id })
             }}
           >

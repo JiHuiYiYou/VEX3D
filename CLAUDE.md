@@ -200,16 +200,17 @@ CAD 导出的 glb **既没有材质也没有 UV** → 颜色、贴图、光照�
 - **调色板 = 4 种 pin + 正反 2 个 cup**（`CUP_VARIANTS`）。cup 的朝向决定用哪一半罩住谁，
   所以是两个独立选项，**不受「翻转 pin」开关影响**（那个开关只对调 pin 的上下两半）。
 - **三种放法**（都守同一套叠放规则，非法一律拒绝 + 弹提示）：
-  1. **拖**：左边的得分物拖到场上的任意 goal。
+  1. **拖**：左边的得分物拖到场上的任意 goal；**场上的散件要进 goal 也得拖**。
   2. **先选 goal 再选件**：先点中一个 goal（3D 里高亮：地面双环 + 一柱光 + **摞顶的落点环**），
      再**单击**左边的得分物 → 直接落在它上面。
-  3. **先选件再选 goal**（`store.pending`，「端着」）：**单击**左边的得分物或场上的散件
-     = 把它端起来（面板里那个件会高亮，左边出现提示），接着点场上的一个 goal → 放上去。
+  3. **先选件再选 goal**（`store.pending`，「端着」）：**单击**左边的得分物 = 把它端起来
+     （面板里那个件会高亮，左边出现提示），接着点场上的一个 goal → 放上去。
      合法落点的 goal 会亮**绿环**（`Goals.tsx` 的 `pendingOk`），不用拖也知道能放哪。
      非法会拒绝并弹提示，件还端着（可以换个 goal 再点）。
      点空白处 / 按 Esc = 把手里的件放下（取消）。
-- **「端着」的件**（`store.pending`）：`{item, source: 'palette'|'loose', looseId?, variantId?}`
-  · 放上 goal 时散件会从场上删掉（`removeLoose`）
+- ★ **场上的得分物不会被「端着」**：点它只是**选中**；再点 goal 的优先级是「**选中那个 goal**」，
+  不会把件放上去（`LooseItems.tsx` 里刻意不 `setPending`）。要把场上的件放进 goal → 拖。
+- **「端着」的件**（`store.pending`）：`{item, variantId?}`
   · 面板的「翻转 pin」开关会跟着重建手里那个件
   · 一次成功的 `placeItem` 会清掉它
 - **选中的 goal 要一眼看得出来**：CAD 路径下 goal 的材质是不变的（没有程序化几何可改 emissive），
@@ -253,4 +254,6 @@ CAD 导出的 glb **既没有材质也没有 UV** → 颜色、贴图、光照�
 - **R3F v9 只把带事件处理的对象放进射线列表** → CAD 里没有 handler 的零件（toggle、围栏…）
   点不着，要自己加隐形代理（`scene/ToggleHandles.tsx` 就是这么做的）。
 - **`OrbitControls` 有阻尼**：脚本里挪相机要同时改 `sceneBridge.controls.target` 并 `update()`。
-- 静态场地合成 1 个 mesh；`frameloop="demand"`；画质档位「高/中/低」（或 `?quality=low`）。
+- 静态场地合成 1 个 mesh；`frameloop="demand"`；画质档位「高/中/低」，**默认「中」**
+  （`?quality=low|medium|high` 可覆盖）。阴影用 `shadows="percentage"`（PCF）——
+  three 0.186 里 `PCFSoftShadowMap` 已经没了，用 `true` 会被降级并打警告。

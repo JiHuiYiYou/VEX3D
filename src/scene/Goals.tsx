@@ -283,13 +283,13 @@ export function Goal({
           const st = useApp.getState()
           const pending = st.pending
           if (pending) {
-            // 「端着」着一个件 → 点 goal 就放上去（合法才放，非法会弹提示）
-            const ok = st.placeItem(spec.id, pending.item)
+            // 面板上「端着」着一个件 → 点 goal 就放上去（合法才放，非法会弹提示）
+            st.placeItem(spec.id, pending.item)
             st.selectGoal(spec.id)
-            if (ok && pending.source === 'loose' && pending.looseId) {
-              st.removeLoose(pending.looseId)
-            }
           } else {
+            // 没有端着的件 → 只是选中这个 goal
+            // ★ 场上的得分物被选中时也是走这一条：点 goal 优先「选中 goal」，
+            //   要把场上的件放进 goal 请直接拖。
             selectGoal(spec.id)
             selectItem(null)
           }

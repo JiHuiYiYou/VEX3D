@@ -119,13 +119,13 @@ export function LeftPalette() {
     if (st.selectedGoalId) {
       const ok = st.placeItem(st.selectedGoalId, item)
       // 放不上去（非法叠放）→ 把它留着「端着」，换个 goal 再点就行
-      if (!ok) st.setPending({ item, source: 'palette', variantId })
+      if (!ok) st.setPending({ item, variantId })
       return
     }
-    if (st.pending?.source === 'palette' && st.pending.variantId === variantId) {
+    if (st.pending?.variantId === variantId) {
       st.setPending(null)
     } else {
-      st.setPending({ item, source: 'palette', variantId })
+      st.setPending({ item, variantId })
     }
   }, [])
 
@@ -171,7 +171,7 @@ export function LeftPalette() {
                 key={v.id}
                 className={
                   'palette-item' +
-                  (pending?.source === 'palette' && pending.variantId === v.id ? ' armed' : '')
+                  (pending?.variantId === v.id ? ' armed' : '')
                 }
                 onPointerDown={startDrag(v.id)}
                 onClick={() => onPaletteClick(v.id)}
@@ -186,7 +186,7 @@ export function LeftPalette() {
                 key={c.id}
                 className={
                   'palette-item' +
-                  (pending?.source === 'palette' && pending.variantId === c.id ? ' armed' : '')
+                  (pending?.variantId === c.id ? ' armed' : '')
                 }
                 onPointerDown={startDrag(c.id)}
                 onClick={() => onPaletteClick(c.id)}
@@ -202,7 +202,7 @@ export function LeftPalette() {
           {pending && (
             <div className="hint small pending-hint">
               已端着：<b>{pendingLabel(pending)}</b> —— 点场上的一个 <b>goal</b> 放上去
-              {pending.source === 'palette' ? '（再点一次这个件 = 取消）' : '（点空白处 = 放下）'}。
+              （再点一次这个件 = 取消，点空白处 / Esc = 放下）。
             </div>
           )}
 
