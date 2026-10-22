@@ -648,19 +648,46 @@ def main():
           const st = window.__vex3d.getState();
           const stacks = {};
           for (const [k, v] of Object.entries(st.stacks)) if (v.length) stacks[k] = v.length;
+          // 官方 VEXcode VR Playground 的 20 个 pin/cup 落位
+          const GPS = [[-600,1745],[600,1745],[-1200,1200],[1200,1200],
+                       [-1745,600],[-600,600],[0,600],[600,600],[1745,600],
+                       [-600,0],[600,0],
+                       [-1745,-600],[-600,-600],[0,-600],[600,-600],[1745,-600],
+                       [-1200,-1200],[1200,-1200],[-600,-1745],[600,-1745]];
+          const pieces = st.loose.map(x => ({x: x.x, y: x.y}));
+          const gpsHit = GPS.map(([px, py]) => {
+            const d = Math.min(...pieces.map(p => Math.hypot(p.x - px, p.y - py)));
+            return Math.round(d * 10) / 10;
+          });
+          const onField = st.loose.filter(x => Math.abs(x.x) < 1900 && Math.abs(x.y) < 1900);
           return {
             stacks,
             loose: st.loose.length,
-            inField: st.loose.filter(x => Math.abs(x.x) < 1900 && Math.abs(x.y) < 1900).length,
+            inField: onField.length,
             inStage: st.loose.filter(x => Math.abs(x.x) > 1900).length,
+            lying: st.loose.filter(x => x.axis).length,
+            nested: st.loose.filter(x => x.nested).length,
+            gpsHit,
+            // 场上 pin = 散件里的 + 5 个中立 goal 上的（4 个中立 + 中场）
+            pinsOnField: onField.filter(x => x.kind === 'pin').length
+                          + Object.keys(stacks).length,
+            cupsOnField: onField.filter(x => x.kind === 'cup').length,
           };
         }""")
         check("摆场：4 个中立 goal + 中场各一根 pin，4 个联盟 goal 空着",
               setup["stacks"] == {"g-n1": 1, "g-n2": 1, "g-n3": 1, "g-n4": 1, "g-center": 1},
               str(setup["stacks"]))
-        check("摆场：散件铺满了场地和红蓝装填区",
-              setup["loose"] > 40 and setup["inField"] > 5 and setup["inStage"] > 30,
-              f"共 {setup['loose']} 个（场地 {setup['inField']} / 装填区 {setup['inStage']}）")
+        check("摆场：官方数量 —— 场上 37 根 pin + 36 个 cup，装填区 46 件",
+              setup["pinsOnField"] == 37 and setup["cupsOnField"] == 36
+              and setup["loose"] == 114 and setup["inStage"] == 46,
+              f"场上 {setup['pinsOnField']} pin / {setup['cupsOnField']} cup，"
+              f"散件共 {setup['loose']}（装填区 {setup['inStage']}）")
+        check("摆场：20 个官方 GPS 落位上都有东西（≤ 6 mm）",
+              max(setup["gpsHit"]) <= 6.0,
+              f"最大偏差 {max(setup['gpsHit'])} mm")
+        check("摆场：16 根侧躺的 pin + 16 根插在 cup 里的 pin",
+              setup["lying"] == 16 and setup["nested"] == 16,
+              f"躺 {setup['lying']} / 插 {setup['nested']}")
         page.screenshot(timeout=180000, path=os.path.join(SHOTS, "07-setup.png"))
 
         # 散件能删：拖一个到画布边缘

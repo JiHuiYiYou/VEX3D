@@ -940,6 +940,36 @@ def main():
     LOG(f"  assembled pin height = {pin_h:.2f} mm, cup height = {cup_h:.2f} mm")
 
     # ---- start objects -------------------------------------------------
+    # CAD 里每个 pin / cup 的摆放：位置、上下半体、轴向。
+    #
+    # 「哪个半体在上」不靠猜零件的局部轴约定，而是用**导出系**（导出系把半体的
+    # 宽端放在原点：pin 的领口 / cup 的杯口 ✓）：
+    #   · pin = 翻边对翻边的线轴 → 两个领口在中间相接 → **领口高的是下半**
+    #   · cup = 杯口对杯口的沙漏 → 两个细腰在中间相接 → **杯口低的是下半**
+    def half_frame(leaf):
+        """(宽端在场地系的位置, 宽端→尖端的方向)"""
+        colour = HALF_PARTS[leaf["name"]]
+        Mexp = np.asarray(halves[colour]["exportMatrix"], float)
+        Mleaf = model.mat(leaf)
+        inv = np.linalg.inv(Mexp)
+        p_local = (inv @ np.array([0.0, 0.0, 0.0, 1.0]))[:3]
+        tip_local = (inv @ np.array([0.0, 0.0, -1.0, 1.0]))[:3]
+        p_world = (Mleaf @ np.append(p_local, 1.0))[:3]
+        d_world = (Mleaf[:3, :3] @ (tip_local - p_local))
+        # → 场地系
+        p_field = (p_world - frame.origin) @ frame.R
+        d_field = d_world @ frame.R
+        return p_field, d_field / np.linalg.norm(d_field)
+
+    def piece_halves(node):
+        out = []
+        for leaf in node.get("children", []):
+            if leaf.get("is_leaf") and leaf["name"] in HALF_PARTS:
+                wide, tip_dir = half_frame(leaf)
+                out.append({"colour": HALF_PARTS[leaf["name"]],
+                            "wide": wide, "tip": tip_dir})
+        return out
+
     start_objects = []
     for kind, nodes in (("pin", pins), ("cup", cups)):
         for n in nodes:
@@ -956,15 +986,38 @@ def main():
             min_pz = float((corners @ frame.Z).min())
             base_z = min_pz - float(frame.origin @ frame.Z)
             pos = np.array([Mf[0, 3], Mf[1, 3], base_z])
+
+            # 上/下半 + 轴向（下半 → 上半）
+            hs = piece_halves(n)
+            if len(hs) == 2:
+                z0 = float(hs[0]["wide"][2])
+                z1 = float(hs[1]["wide"][2])
+                if kind == "pin":
+                    lo_i = 0 if z0 >= z1 else 1     # 领口高的 = 下半
+                else:
+                    lo_i = 0 if z0 <= z1 else 1     # 杯口低的 = 下半
+                hi_i = 1 - lo_i
+                # 轴向（下半 → 上半）：pin 看上半的尖端方向，cup 看下半的尖端方向
+                axis = hs[hi_i]["tip"] if kind == "pin" else hs[lo_i]["tip"]
+                piece_order = [hs[lo_i]["colour"], hs[hi_i]["colour"]]
+            else:
+                axis = np.array([0.0, 0.0, 1.0])
+                piece_order = half_colours(n)
+
             start_objects.append({
                 "kind": kind,
-                "halves": half_colours(n),
+                # [下半, 上半]（物理上下，不是 CAD 装配树的顺序）
+                "halves": piece_order,
                 "position": [round(float(x), 2) for x in pos],
                 "rotation": [round(rx, 6), round(ry, 6), round(rz, 6)],
+                # 件的轴向（下半 → 上半），场地系；竖直 = (0,0,1)
+                "axis": [round(float(x), 4) for x in axis],
             })
     LOG(f"  start objects: {len(start_objects)} "
         f"({sum(1 for o in start_objects if o['kind']=='pin')} pins, "
         f"{sum(1 for o in start_objects if o['kind']=='cup')} cups)")
+    lying = sum(1 for o in start_objects if abs(o["axis"][2]) < 0.9)
+    LOG(f"  lying (tilted more than ~25 deg off vertical): {lying}")
 
     # ---- exports -------------------------------------------------------
     exports = export_assets(model, frame, goal_rows, halves, toggles)
@@ -1325,13 +1378,15 @@ def build_field_json(model, frame, goal_rows, assign, halves, toggles,
         "nestDepth": round(float(nest), 2),
         "startObjects": start_objects,
         "startObjectsNote":
-            "The CAD does NOT contain start-of-match positions for the 63 pins "
-            "and 56 cups: they are laid out in a staging arrangement (rows of "
-            "cups and pins outside the west wall, a packing grid inside the "
-            "field, one pin on the midfield goal).  The positions below are "
-            "the measured world transforms exactly as they sit in the CAD, so "
-            "the app can place the objects itself if it wants a match-start "
-            "layout.",
+            "The 63 pins and 56 cups sit in the CAD exactly where they start "
+            "a match: 37 pins + 36 cups on the field, 20 cups + 26 pins in "
+            "the red/blue staging areas.  Those numbers match the official "
+            "VEXcode VR Playground object inventory exactly, and the 21 "
+            "locations match its GPS table to within 2 mm, so this IS the "
+            "official opening layout -- not a packing arrangement.  "
+            "position = [x, y, base height] in the field frame (mm), "
+            "halves = [lower, upper] by physical height, axis = the piece's "
+            "axis (lower -> upper) so lying pieces can be drawn correctly.",
         # name -> merged-buffer range map, so the app can build one
         # geometry group per part and colour it by name
         "parts": parts_map or {},

@@ -18,19 +18,32 @@ C:/Users/liuzhen/miniconda3/python.exe tools/verify_ui.py   # 端到端（需先
 
 ## 摆场预设（官方开局布局）
 
-顶栏「摆场」= 重置 + 灌一份预设：一键把场地摆成官方手册俯视示意图
-（`study/VEX/image/2D俯视示意图.png`）的样子。
+顶栏「摆场」= 重置 + 灌一份预设：一键把场地摆成**官方开局布局**。
 
-- **数据**在 `src/data/presets.ts`，由 `tools/extract_setup.py` 从那张示意图里抠出来
-  （用图里 4 根黄色 toggle 标定坐标，0.1585 px/mm）✓ 改图后重跑脚本即可。
+- **数据**在 `src/data/presets.ts`，由 `tools/extract_setup.py` 从**官方 Field CAD**
+  导出的 `public/assets/field.json` → `startObjects` 转出来（CAD 里那 63 根 pin +
+  56 个 cup 的开局摆法 ✓）。
+- **对账**：这份摆法跟官方 **VEXcode VR Playground** 的两处公开资料逐项吻合 ——
+  ① GPS 坐标表的 20 个 pin/cup 落位，每个都有东西（最大偏差 **5.5 mm**）；
+  ② 得分物清单：场上 37 根 pin + 36 个 cup，红蓝装填区 26 根 pin + 20 个 cup，
+  配色数量（红黄 20 / 蓝黄 20 / 黄黄 19 / 红蓝 4）与 cup 朝向（场上 24 个灰在上、
+  12 个透明在上）全部一致 ✓。脚本每次都会校验，对不上直接报错退出 ✓。
+  手册俯视示意图（`study/VEX/image/2D俯视示意图.png` = FO-2）跟它是同一份布局 ✓
+  （图里 4 个「风车」= 4 组各 4 根**侧躺**的 pin ✓）。
 - **内容**：4 个中立 goal + 中场 goal 各一根黄/黄 pin（4 个联盟 goal 空着）；
-  场地上的 cup（有的里面插着 pin）；北/南墙内侧各 2 组 (cup, pin, cup)；
-  红/蓝装填区各 10 组 (cup + pin) + 几根散放的 pin —— 共 72 个散件。
+  场上 16 个落位各一组 cup + 插在 cup 里的 pin；四面墙各 2 组 (cup, pin, cup)；
+  4 个斜角落位周围各躺着 4 根 pin；红/蓝装填区各 10 组 (cup + pin) + 2 根预装 ——
+  共 114 个散件 ✓。
 - **散件**（`store.loose` / `LooseItem`）是**新概念**：场上不在 goal 里的得分物。
   它们**不参与计分**（手册只算 goal 里的 pin 和中场的机器人）。
 - **散件能拖能删**：拖到画布边缘 → 垃圾桶删掉；拖到某个 goal 上 → 进那个 goal 的摞
   （非法组合照常拒绝）；拖到别处 → 挪位置。
-  插在 cup 里的 pin，底端在 cup 底 + 164.5（跟 pin 插在 goal 孔里是同一套关系）。
+- **散件的三种形态**（`LooseItem`）：
+  | 形态 | 字段 | 落点 |
+  |---|---|---|
+  | 站在垫子上 | — | 底端 0 |
+  | 插在 cup 里 | `nested: true` | 底端 = cup 底 + `NEST_ON_CUP`（针尖探进 cup 的腰） |
+  | 侧躺着 | `axis: [x,y,z]`（场地系，下半→上半） | `restingBaseY()` 按轴向算，落在垫子上 |
 - 摆场后自动切到 `setup` 视角（俯视拉远到 6600 mm，红/蓝装填区也进得来）。
 
 ## 目录
@@ -74,7 +87,7 @@ src/
 
 | 产物 | 内容 |
 |---|---|
-| `field.json` | 9 个 goal、4 个 toggle、半体尺寸、socket、119 条开局位姿 |
+| `field.json` | 9 个 goal、4 个 toggle、半体尺寸、socket、**119 条开局位姿**（= 官方摆法 ✓） |
 | `goal_*.glb` | 4 种 goal，原点 = socket 轴，+Z 向上，**按 PRODUCT 拆多节点**（可分别上色） |
 | `half_*.glb` | 翻边在原点、尖端朝 −Y；**一个半体 = 一个零件** |
 | `field.glb` | 静态场地（地砖 / 围栏 / 胶带 / Loader / toggle / 角柱 / 联盟站墙），**不含得分物**。导出要带 `--with-wall-trim` |
@@ -94,6 +107,14 @@ src/
   （联盟 goal 用 `276-5006-001`，跟 goal 同色）。
 - **toggle** 零件 = `276-9250-023_GREY`，656.2 × 51.59 × 55.65，中心离地 331.6，
   在 (0, ±1817.04) 与 (±1817.04, 0)。场角那 4 个三色「风车」是别的零件。
+- **CAD 里那 63 根 pin + 56 个 cup 就是官方开局摆法**（不是「摆货」状态）：
+  场上 37 pin + 36 cup、装填区 26 pin + 20 cup —— 跟官方 VEXcode VR Playground 的
+  得分物清单逐项一致 ✓；20 个落位跟它的 GPS 坐标表差 ≤ 5.5 mm ✓。
+  `startObjects` 里每条 = `{kind, halves[下,上], position[x,y,底高], axis}` ✓
+  （`halves` 的上下按**物理高度**排，靠导出矩阵算的，不靠 CAD 装配树顺序 ✗；
+  `axis` = 下半→上半的轴向，侧躺的 16 根靠它画 ✓）。
+- **toggle 位置**：CAD 1817.04 vs 官方 VR 表 1780（差 37 mm）→ 摆场以 CAD 为准 ✓
+  （app 的 3D 就是 CAD 画的 ✓）。
 
 ## 得分物模型
 
@@ -102,6 +123,11 @@ src/
   （CAD 里 Clear 半在 −85 不旋转、Dark Gray 半在 +85 且绕 Z 转 180° → 两个杯口在中间接合。）
   **两种件拼法不同，别按同一种画。**
 - 半体局部约定：翻边在原点、本体沿 −Y、尖端/杯口在 −height。
+- **哪个半体在上**：pin 的**领口**（翻边）相接、cup 的**细腰**相接 →
+  pin 的下半 = 领口高的那个，cup 的下半 = 杯口低的那个 ✓（`tools/extract_field.py`
+  里用导出矩阵算 ✗ 别用 CAD 装配树的顺序 ✗）。
+- **侧躺**：官方摆法里有 16 根 pin 侧躺（4 个斜角落位各 4 根，躺成手册图里的「风车」✓），
+  轴向与水平面差 15°，一头着地。渲染用 `axis` + `restingBaseY()` ✓。
 - **嵌套**（`scene/stackLayout.ts`）：
   - cup 放 pin → `cupBase = pinBase + 82.5`（cup 下沿坐在 pin 腰上；cup 下半的薄壁套筒罩住 pin 上半锥体）
   - pin 放 cup → `pinBase = cupBase + 82.0`（pin 腰坐在 cup 上沿上；pin 下半插进 cup 上半）

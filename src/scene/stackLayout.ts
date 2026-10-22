@@ -108,6 +108,38 @@ export function stackTopY(goal: GoalSpec, stack: StackItem[]): number {
   return last ? last.baseY + itemHeight(last.item) : goal.socket.z
 }
 
+/**
+ * 躺平的件落在垫子上时，它的**局部原点**（pin 的下尖端 / cup 的下杯口）离地多高。
+ *
+ * `axis` 是件的轴向（场地系，下半 → 上半）。件绕这条轴侧躺时，轮廓上每个
+ * (沿轴 s, 半径 r) 的点离垫子的高度 = baseY + s·axis.z − r·(轴的水平分量)；
+ * 取其中最低的一个落在垫子上（= 0）就得到 baseY ✓。
+ */
+export function restingBaseY(
+  kind: 'pin' | 'cup',
+  axis: [number, number, number],
+): number {
+  const uz = axis[2]
+  const horizontal = Math.hypot(axis[0], axis[1])
+  const profile: [number, number][] =
+    kind === 'pin'
+      ? [
+          [0, HALVES.pin.rTop],
+          [PIN_WAIST, HALVES.pin.rMax ?? HALVES.pin.rBottom],
+          [PIN_HEIGHT, HALVES.pin.rTop],
+        ]
+      : [
+          [0, HALVES.cup.rMax ?? HALVES.cup.rBottom],
+          [CUP_HEIGHT / 2, HALVES.cup.rTop],
+          [CUP_HEIGHT, HALVES.cup.rMax ?? HALVES.cup.rBottom],
+        ]
+  let lowest = Infinity
+  for (const [s, r] of profile) {
+    lowest = Math.min(lowest, s * uz - r * horizontal)
+  }
+  return -lowest
+}
+
 /** 再放一件时它的落点（kind = 即将放入的那一件） */
 export function nextBaseY(
   goal: GoalSpec,

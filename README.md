@@ -28,9 +28,13 @@
 
 ![摆场](docs/setup.png)
 
-**「摆场」** 一键把场地摆成官方开局示意图的样子：4 个中立 goal + 中场 goal 各插一根黄/黄 pin，
-场地上的 cup（有的里面插着 pin）、北/南墙边的 (cup, pin, cup) 三件组、
-还有红/蓝双方的装填区（各 10 组 cup + pin）全都还原 —— 散件也能拖着挪位置、拖到边缘删掉。
+**「摆场」** 一键把场地摆成**官方开局布局**：4 个中立 goal + 中场 goal 各插一根黄/黄 pin，
+场地上 16 个落位的 (cup + 插在 cup 里的 pin)、四面墙各 2 组 (cup, pin, cup)、
+4 个斜角落位周围各躺着 4 根 pin，还有红/蓝双方的装填区（各 10 组 cup + pin）。
+这些坐标直接来自**官方 Field CAD** 里那 63 根 pin + 56 个 cup 的摆法，
+跟官方 VEXcode VR Playground 的 **GPS 坐标表**（20 个落位，误差 ≤ 5.5 mm）和
+**得分物清单**（场上 37 pin + 36 cup，装填区 26 pin + 20 cup，配色数量全对）逐项吻合 ✓。
+散件也能拖着挪位置、拖到边缘删掉。
 
 ![嵌套](docs/nesting.png)
 
@@ -50,7 +54,8 @@
 - **两种放法** —— 把左边的得分物**拖**到场上任意一个 goal；或者先点中一个 goal
   （场上会亮起青色环 + 一柱光，摞顶还有个落点环），再**单击**左边的得分物 → 直接落在它上面。
   两种放法都守同一套叠放规则。
-- **摆场 / 重置** —— 顶栏「摆场」按官方开局示意图摆好全场；「重置」全部清空。
+- **摆场 / 重置** —— 顶栏「摆场」按**官方开局布局**摆好全场（坐标来自官方 Field CAD，
+  与官方 VEXcode VR Playground 的 GPS 表和得分物清单逐项吻合）；「重置」全部清空。
 - **两种件的形状不一样**（CAD 装配树实测）：**pin = 翻边对翻边的线轴**，
   **cup = 杯口对杯口的沙漏**（两端敞口宽沿、中间 Ø59 细腰）。
   叠放时是真的**套进去**的 —— cup 的下半是薄壁套筒，罩着 pin 的上半锥体，
@@ -134,7 +139,7 @@ docs/                 README 用的截图
 | `npm run preview` | 预览 `dist/` |
 | `npm test` | 计分引擎回归测试（Node 直接跑 `.ts`，需要 Node 22.18+ / 24） |
 | `npm run typecheck` | 只做类型检查 |
-| `C:/.../miniconda3/python.exe tools/verify_ui.py` | Playwright 端到端验证（29 项断言 + 截图） |
+| `C:/.../miniconda3/python.exe tools/verify_ui.py` | Playwright 端到端验证（56 项断言 + 截图） |
 | `C:/.../miniconda3/python.exe tools/shot_stack.py` | 拍一张 Pin/Cup 嵌套特写（肉眼核对用） |
 
 ### 可选：接上 VEX 规则查询 MCP

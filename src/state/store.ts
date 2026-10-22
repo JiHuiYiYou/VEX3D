@@ -12,22 +12,27 @@ export type DragPayload =
 /**
  * 场上**不在 goal 里**的得分物（散件）。
  *
- * 官方开局示意图里有三类：
- *  · 站在垫子上的 cup（有的里面插着 pin）
+ * 官方开局布局里有三类：
+ *  · 站在垫子上的 cup / pin（有的 pin 插在 cup 里）
+ *  · 侧躺着的 pin（官方摆法里有 16 根）
  *  · 装填区里备着的 cup / pin
- *  · 躺平（水平放置）的 pin
  *
  * 散件**不参与计分**（手册只算 goal 里的 pin 和中场的机器人）。
  */
 export interface LooseItem {
   id: string
   kind: 'pin' | 'cup'
+  /** [下半, 上半] */
   halves: [string, string]
   /** 场地坐标 (X 东, Y 北)，mm */
   x: number
   y: number
-  /** 底端离地高度（mm）：插在 cup 里的 pin 是 164.5，其余是 0 */
+  /** 底端离地高度（mm）；省略 = 按 kind / axis / nested 推算 */
   z?: number
+  /** 侧躺时的轴向（场地系，下半 → 上半）；竖直时不写 */
+  axis?: [number, number, number]
+  /** 插在 cup 里（针尖探进 cup 的腰） */
+  nested?: boolean
 }
 
 /** 画质档位：给弱机器（学校笔记本 / 投影仪）留的退路 */
