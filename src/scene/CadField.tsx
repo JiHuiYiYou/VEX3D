@@ -38,10 +38,10 @@ const TOGGLE_MATERIALS: Record<ToggleState, THREE.Material> = {
  * CAD 几何是「Z 向上」的，three.js 是「Y 向上」→ 统一用 bakeRoot 转过来，
  * 否则整块场地会躺着（看起来是空的）。
  *
- * 只有当导出里**同时有地面垫和围栏**时才算完整，否则回退到程序化场地
- * （当前 CAD 导出还缺这两样，见 CLAUDE.md）。
+ * ★ 导出里必须**同时有地面垫和围栏**才算完整；不完整就报错（onError），
+ *   绝不悄悄换成手搓的近似场地。
  */
-export function CadField({ onLoaded }: { onLoaded?: (ok: boolean) => void }) {
+export function CadField({ onError }: { onError?: (msg: string) => void }) {
   const [root, setRoot] = useState<THREE.Object3D | null>(null)
   const { invalidate } = useThree()
   const toggles = useApp((s) => s.toggles)
@@ -51,7 +51,7 @@ export function CadField({ onLoaded }: { onLoaded?: (ok: boolean) => void }) {
     loadGlb('assets/field.glb').then((r) => {
       if (!alive) return
       if (!r) {
-        onLoaded?.(false)
+        onError?.('field.glb 载入失败（文件缺失或体积超限）')
         return
       }
       // 完整性检查：既要有围栏，也要有**真正铺满场地的地面垫**
@@ -75,10 +75,9 @@ export function CadField({ onLoaded }: { onLoaded?: (ok: boolean) => void }) {
         if (sx >= 3000 && sz >= 3000) coversField = true
       })
       if (!hasWall || !coversField) {
-        console.warn(
-          `[assets] field.glb 不完整（围栏:${hasWall} 地面垫:${coversField}），使用程序化场地`,
-        )
-        onLoaded?.(false)
+        const msg = `field.glb 不完整（围栏：${hasWall ? '有' : '无'}，地面垫：${coversField ? '有' : '无'}）`
+        console.warn(`[assets] ${msg}`)
+        onError?.(msg)
         return
       }
       r.traverse((o) => {
@@ -92,12 +91,11 @@ export function CadField({ onLoaded }: { onLoaded?: (ok: boolean) => void }) {
       })
       setRoot(r)
       invalidate()
-      onLoaded?.(true)
     })
     return () => {
       alive = false
     }
-  }, [invalidate, onLoaded])
+  }, [invalidate, onError])
 
   const clone = useMemo(() => (root ? root.clone(true) : null), [root])
 

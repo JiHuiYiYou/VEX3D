@@ -1,12 +1,10 @@
-import { Suspense, useMemo, useRef, useState } from 'react'
+import { Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import { Field, Loaders } from './Field'
 import { CadField } from './CadField'
 import { Goals } from './Goals'
 import { QuadrantTint } from './QuadrantTint'
-import { Toggles } from './Toggles'
 import { ToggleHandles } from './ToggleHandles'
 import { LooseItems } from './LooseItems'
 import { DragGhost } from './DragGhost'
@@ -24,13 +22,12 @@ function BridgeSetup() {
   return null
 }
 
-function Scene() {
+function Scene({ onError }: { onError?: (msg: string) => void }) {
   const spec = getFieldSpec()
   const selectGoal = useApp((s) => s.selectGoal)
   const dragging = useApp((s) => s.dragging)
   const quality = useApp((s) => s.quality)
   const downPos = useRef<{ x: number; y: number } | null>(null)
-  const [cadReady, setCadReady] = useState(false)
   const shadows = quality !== 'low'
 
   return (
@@ -57,15 +54,9 @@ function Scene() {
       />
       <directionalLight position={[-2500, 2000, 1800]} intensity={0.35} />
 
-      {/* 官方 CAD 的静态场地；CadField 内部会检查完整性，不完整就回退程序化几何 */}
-      <CadField onLoaded={setCadReady} />
-      {!cadReady && (
-        <>
-          <Field />
-          <Loaders />
-          <Toggles />
-        </>
-      )}
+      {/* 官方 CAD 的静态场地 —— 场地的**唯一**几何来源。
+          资产不完整时由 onError 报给 App（整屏提示），不拿手搓几何顶替。 */}
+      <CadField onError={onError} />
       <QuadrantTint />
       <ToggleHandles />
       <LooseItems />
@@ -110,7 +101,7 @@ function Scene() {
   )
 }
 
-export function FieldScene() {
+export function FieldScene({ onError }: { onError?: (msg: string) => void }) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const quality = useApp((s) => s.quality)
   const initialCamera = useMemo(() => {
@@ -141,7 +132,7 @@ export function FieldScene() {
         }}
       >
         <Suspense fallback={null}>
-          <Scene />
+          <Scene onError={onError} />
         </Suspense>
       </Canvas>
     </div>

@@ -54,7 +54,7 @@ public/assets/       CAD 管线产物（不入库）
 tools/               离线 Python 管线（OCP）+ 验证脚本（extract_field / verify_ui / shot_*）
 src/
   data/terms.ts      ★ 统一词表（颜色 / 区域名 / 零件名），**不 import 任何东西**
-  data/fieldSpec.ts  场地规格 + 坐标系换算 + 兜底几何
+  data/fieldSpec.ts  场地规格 + 坐标系换算 + CAD 实测常量
   state/scoring.ts   ★ 计分引擎（全部规则逻辑都在这一个文件里）
   state/store.ts     zustand store
   state/drag.ts      拖拽指针状态（放在 React 之外，避免每帧重渲染）
@@ -84,6 +84,19 @@ src/
 ## 场地事实（以官方 CAD 实测为准）
 
 `tools/extract_field.py` → `public/assets/`（约 15 s；首次 `tools/build_cache.py` 约 8 min）。
+
+### ★ 场地的几何只有 CAD 一份来源（2026-10 改）
+
+- **没有程序化兜底**：手搓的场地/胶带/围栏/goal/半体几何已经全部删掉
+  （`scene/geometry.ts`、`scene/Field.tsx`、`scene/Toggles.tsx`）。
+  少一个 CAD 资产 → app **启动时整屏报错**并给出生成命令，不画一个「像但不是」的场地 ✓。
+- `fieldSpec.ts` 里只剩**实测常量**（半体尺寸、goal 位置、pin/cup 高度）；
+  运行期的 goal 规格一律取 `field.json`（`loadFieldSpec()` 会顺手把 JSON 里的 goal
+  写回 `GOAL_BY_ID`，并检查和常量差了多少毫米）。
+- **`bakeRoot()` 只能调用一次**（已加 `userData.baked` 保护）：
+  glb 的 root 是**共享**的，而 React StrictMode 在 dev 下会把 effect 跑两遍 ——
+  转第二次就会**再转一次 -90°**，整块场地躺下，完整性检查判定「没有地面垫」，
+  于是悄悄退回手搓场地（这个坑真的踩过）。改导出逻辑时注意这一点 ✓。
 
 | 产物 | 内容 |
 |---|---|
@@ -172,7 +185,7 @@ src/
 - **两种放法**：左边的得分物可以**拖**到场上任意 goal；也可以先点中一个 goal
   （3D 里高亮：地面双环 + 一柱光 + **摞顶的落点环**），再**单击**左边的得分物 →
   直接落在它上面（走 `store.placeItem`，同样守叠放规则，非法会被拒绝并弹提示）。
-- **选中的 goal 要一眼看得出来**：CAD 路径下 goal 的材质是不变的（只有程序化兜底能改 emissive），
+- **选中的 goal 要一眼看得出来**：CAD 路径下 goal 的材质是不变的（没有程序化几何可改 emissive），
   所以高亮靠 `Goals.tsx` 里叠加的环和光柱。
 - **区域染色**：每个区域按它那个 toggle 的状态染色，边界用真实几何
   （外角 ±1804 → 胶带臂内端 ±299 → 中场菱形顶点 ±598），不盖胶带。
@@ -191,6 +204,11 @@ src/
   - **别写 (X, Z, Y)** —— 那样会左右镜像。
 - **CAD 的 glb 全在同一个归一化系**（x=东 / y=北 / z=上，原点在垫子平面），几何已烘好、
   节点矩阵是单位阵 → 前端统一施加 `CAD_TO_THREE` 即可，不用按文件猜坐标系。
+- **不要给场地加程序化兜底**：CAD 资产缺失 = 报错退出，不是画个「差不多的」场地。
+  手搓的几何跟官方 CAD 一定会漂（位置、尺寸、颜色全对不上），画出来反而误导人。
+- **`bakeRoot()` 对同一个 root 只能调一次**：它会把变换烘进几何（原地改），
+  第二次调用 = 再转一次 -90°。glb 的 root 是共享的 + StrictMode 会跑两遍 effect → 必须幂等
+  （已用 `userData.baked` 保护）✓。
 - **相机 `near` 必须是 50**（near=1 时 5000 mm 处深度精度约 1.6 mm，胶带会和地垫 z-fighting）。
 - **`frameloop="demand"` 下异步载入的几何不会自动出帧** → `assets.ts` 的 hook 在 setState
   之后必须 `sceneBridge.invalidate?.()`。

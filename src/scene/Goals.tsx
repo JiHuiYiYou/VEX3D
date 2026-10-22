@@ -1,10 +1,9 @@
 import { useMemo, useCallback, useRef, useEffect } from 'react'
 import * as THREE from 'three'
 import { useApp } from '@/state/store'
-import { goalGeometry, pinHalfGeometry, cupHalfGeometry } from './geometry'
 import { loadHalfGeometry, useGoalAsset, useOptionalGeometry } from './assets'
 import { materialFor } from './materials'
-import { COLORS, HALVES, toThree } from '@/data/fieldSpec'
+import { COLORS, toThree } from '@/data/fieldSpec'
 import type { GoalSpec } from '@/data/fieldSpec'
 import type { StackItem } from '@/state/scoring'
 import { sceneBridge } from './bridge'
@@ -14,9 +13,6 @@ import { halfTransform, layoutStack, stackTopY } from './stackLayout'
  * 半体在 3D 里的摆放（Pin = 翻边对翻边、Cup = 杯口对杯口）见 `stackLayout.ts`。
  */
 
-const PIN_GEO = pinHalfGeometry(HALVES.pin)
-const CUP_GEO = cupHalfGeometry(HALVES.cup)
-
 const HALF_COLORS: Record<string, string> = {
   red: COLORS.red,
   blue: COLORS.blue,
@@ -25,10 +21,12 @@ const HALF_COLORS: Record<string, string> = {
   clear: COLORS.clear,
 }
 
-/** 优先用 CAD 导出的半体几何，没有就用程序化几何 */
-function useHalfGeometry(kind: 'pin' | 'cup', color: string) {
-  const cad = useOptionalGeometry(() => loadHalfGeometry(color), [color])
-  return cad ?? (kind === 'pin' ? PIN_GEO : CUP_GEO)
+/**
+ * 半体几何 —— **只有 CAD 导出的那一份**（`assets/half_<color>.glb`）。
+ * 红/蓝/黄是 pin 的半体（线轴），透明/灰是 cup 的半体（沙漏）。
+ */
+function useHalfGeometry(color: string) {
+  return useOptionalGeometry(() => loadHalfGeometry(color), [color])
 }
 
 export function HalfMesh({
@@ -45,8 +43,10 @@ export function HalfMesh({
 }) {
   const t = halfTransform(item, halfIndex, baseY)
   const color = item.halves[halfIndex]
-  const geo = useHalfGeometry(item.kind, color)
+  const geo = useHalfGeometry(color)
   const isClear = color === 'clear'
+  // CAD 半体还没加载出来（或加载失败）→ 这个半体先不画
+  if (!geo) return null
   return (
     <mesh
       geometry={geo}
@@ -151,13 +151,12 @@ export function Goal({
   /** 当前是合法落点（拖拽时才会为 true） */
   dropOk: boolean
 }) {
-  const geo = useMemo(() => goalGeometry(spec), [spec])
   const selectGoal = useApp((s) => s.selectGoal)
   const selectItem = useApp((s) => s.selectItem)
   const setDragging = useApp((s) => s.setDragging)
   const setHoverGoal = useApp((s) => s.setHoverGoal)
 
-  // 有 CAD 导出的 Goal 几何就用它，否则用程序化几何
+  // Goal 几何 —— **只有 CAD 导出的那一份**（`assets/goal_<variant>.glb`）
   const asset = useGoalAsset(spec.variant, spec.height)
   const cad = asset?.single ?? null
   const cadTree = asset?.root ?? null
@@ -199,27 +198,9 @@ export function Goal({
         <mesh geometry={cad} castShadow receiveShadow>
           <meshStandardMaterial color={variantColor} roughness={0.6} metalness={0.05} />
         </mesh>
-      ) : (
-        <mesh geometry={geo} castShadow receiveShadow>
-          <meshStandardMaterial
-            color={variantColor}
-            roughness={0.6}
-            metalness={0.05}
-            emissive={selected || hovered ? '#0d4a5c' : '#000000'}
-            emissiveIntensity={selected || hovered ? 1.1 : 0}
-          />
-        </mesh>
-      )}
+      ) : null}
 
-      {/* 中立 goal 上的黄色花纹环（只有程序化几何才加，CAD 里自带花纹） */}
-      {!cad && !cadTree && spec.variant.startsWith('neutral') && (
-        <mesh position={[0, spec.height * 0.45, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[spec.baseRadius * 0.8, 5, 8, 40]} />
-          <meshStandardMaterial color={COLORS.yellow} roughness={0.5} />
-        </mesh>
-      )}
-
-      {/* 选中 / 悬停高亮。选中的要**一眼看出来**（CAD 路径下 goal 的材质是不变的，
+      {/* 选中 / 悬停高亮。选中的要**一眼看出来**（CAD 的 goal 材质是不变的，
           只能靠这些叠加的环和光柱） */}
       {selected && (
         <>

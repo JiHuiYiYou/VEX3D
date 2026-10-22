@@ -365,6 +365,7 @@ def main():
         # ── 8. 垃圾桶：把已放置的件拖到屏幕边缘 ─────────────
         trash_seen = False
         deleted = False
+        trash_info = {"found": False}   # 找不到件时也别让脚本崩（下面要用它报错）
         if found:
             # 已放置的件就在桩的上方，向上找几行点一下选中它
             item_pt = None

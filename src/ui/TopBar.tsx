@@ -28,7 +28,7 @@ export function TopBar() {
       <div className="brand">
         <span className="brand-main">VEX Override 3D 战术分析</span>
         <span className="brand-sub">
-          {spec.source.startsWith('built-in') ? '内置兜底几何（CAD 未载入）' : spec.source}
+          官方 Field CAD · {spec.source} · {spec.buildId}
         </span>
       </div>
 

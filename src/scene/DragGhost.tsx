@@ -1,15 +1,12 @@
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useApp } from '@/state/store'
 import { dragPointer } from '@/state/drag'
-import { HALVES, GOAL_BY_ID, toThree } from '@/data/fieldSpec'
-import { cupHalfGeometry, pinHalfGeometry } from './geometry'
+import { GOAL_BY_ID, toThree } from '@/data/fieldSpec'
+import { loadHalfGeometry, useOptionalGeometry } from './assets'
 import { pickOnPlane } from './bridge'
 import { halfTransform, nextBaseY } from './stackLayout'
-
-const PIN_GEO = pinHalfGeometry(HALVES.pin)
-const CUP_GEO = cupHalfGeometry(HALVES.cup)
 
 const HALF_COLORS: Record<string, string> = {
   red: '#e4002b',
@@ -18,6 +15,9 @@ const HALF_COLORS: Record<string, string> = {
   gray: '#4a4a4a',
   clear: '#9fd3f5',
 }
+
+/** 没在拖东西时占位的两个颜色（红/蓝 pin） */
+const IDLE_HALVES: [string, string] = ['red', 'blue']
 
 /**
  * 拖拽中的「幽灵」件。
@@ -31,8 +31,10 @@ export function DragGhost() {
   const group = useRef<THREE.Group>(null)
   const invalidate = useThree((s) => s.invalidate)
 
-  const pinGeo = useMemo(() => PIN_GEO, [])
-  const cupGeo = useMemo(() => CUP_GEO, [])
+  // 半体几何 —— **只有 CAD 导出的那一份**（红/蓝/黄 = pin 半体，透明/灰 = cup 半体）
+  const halves = dragging?.item.halves ?? IDLE_HALVES
+  const geo0 = useOptionalGeometry(() => loadHalfGeometry(halves[0]), [halves[0]])
+  const geo1 = useOptionalGeometry(() => loadHalfGeometry(halves[1]), [halves[1]])
 
   useFrame(() => {
     const g = group.current
@@ -86,13 +88,13 @@ export function DragGhost() {
   if (!dragging) {
     return (
       <group ref={group} name="drag-ghost" visible={false}>
-        <mesh geometry={pinGeo} />
+        {geo0 && <mesh geometry={geo0} />}
       </group>
     )
   }
 
   const item = dragging.item
-  const geo = item.kind === 'pin' ? pinGeo : cupGeo
+  const geos = [geo0, geo1]
   const dropTarget = useApp.getState().dropTarget
   const illegal = !!dropTarget && !dropTarget.legal
 
@@ -102,6 +104,8 @@ export function DragGhost() {
         // ★ 用和实物一样的拼法：Pin = 翻边对翻边，Cup = 杯口对杯口
         const t = halfTransform(item, i, 0)
         const c = HALF_COLORS[item.halves[i]]
+        const geo = geos[i]
+        if (!geo) return null
         return (
           <mesh
             key={i}

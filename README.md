@@ -48,6 +48,7 @@
   （`fieldcad/276-9250-000 (2026-04-26).STEP`）转出来的几何：12 ft × 12 ft，
   9 个 goal、4 个 toggle、4 个 Loader、中场菱形、对角胶带、红蓝角区、格纹围栏。
   goal 的高度、socket 孔径、pin/cup 半体尺寸全部是 CAD 实测值（与手册差 < 0.1 mm）。
+  **场地的几何只有这一份来源**：资产缺了就报错，不拿手搓的近似几何顶替。
 - **点 goal → 左侧调色板** —— **4 种 pin**（红蓝 / 红黄 / 蓝黄 / 黄黄）+
   **正反 2 个 cup**（透明在下 / 灰在下）。cup 的朝向决定它用哪一半罩住谁，
   所以直接给两个选项摆件，**不用再按「翻转」**；「翻转 pin」按钮只用来对调 pin 的上下两半。
@@ -92,10 +93,10 @@ npm run build      # 产物在 dist/
 
 机器吃力时可以在网址后面加 `?quality=low`（关阴影、降像素比）。
 
-> **克隆下来能跑，但没有 CAD 场地。** 转换出来的资产（`public/assets/`，约 20 MB）不入库，
-> 所以新克隆的仓库用的是**程序化兜底场地**：goal 位置、socket、半体尺寸和 CAD 实测值一致（这些
-> 硬编码在 `src/data/fieldSpec.ts` 里），但围栏、地砖、Loader、toggle 都是简化的几何，
-> 没有官方零件的细节。要完整场地请按下一节自己生成一份。
+> **克隆下来跑不起来 —— 除非先生成 CAD 资产。** 场地的几何**只有官方 Field CAD 一份来源**，
+> 没有手搓的「相似版」：转换出来的资产（`public/assets/`，约 27 MB）不入库，
+> 所以新克隆的仓库启动时会直接报错，并告诉你怎么生成。宁可少一个功能，也不要给你一个
+> 「看着像官方场地、其实不是」的东西。
 
 ## 重新生成 CAD 资产
 
@@ -116,7 +117,7 @@ tools/.venv/Scripts/python.exe tools/validate_assets.py
 
 ```
 src/
-  data/fieldSpec.ts   场地规格 + 坐标系换算 + 兜底几何
+  data/fieldSpec.ts   场地规格 + 坐标系换算 + CAD 实测常量
   state/scoring.ts    ★ 计分引擎（全部规则逻辑都在这一个文件里）
   state/store.ts      zustand store
   state/drag.ts       拖拽指针状态（放在 React 之外，避免每帧重渲染）

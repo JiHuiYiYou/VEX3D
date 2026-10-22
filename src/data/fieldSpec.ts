@@ -5,10 +5,13 @@
  *   X = 东, Y = 北, Z = 上, 原点 = 场地中心。
  *   three.js 是 Y-up，所以进入 three.js 时用 `toThree()` 交换 Y/Z。
  *
- * 这份文件里的几何是**按规则手册 + 现场照片反解出的程序化兜底**。
- * `tools/extract_field.py` 跑完后会在 `public/assets/field.json` 里给出
- * CAD 实测值（更精确的 Goal 形状、socket 孔位/半径、Toggle 变换、半体尺寸），
- * 前端加载到 field.json 时会用它覆盖这里的 fallback。
+ * ★ 场地的几何**只有一份来源：官方 Field CAD**。
+ *   `tools/extract_field.py` 把它导成 `public/assets/`（field.glb / goal_*.glb /
+ *   half_*.glb / field.json），前端只认这些资产 —— 载入不到就**直接报错**，
+ *   绝不用「按手册手搓的近似几何」顶替（那样看到的就不是官方场地了）。
+ *
+ *   这份文件里留下的是**从 CAD 实测出来的常量**（尺寸、位置），
+ *   供计分引擎（node 里直接跑，不联网）和堆叠几何用。
  */
 
 export type GoalVariant = 'alliance-red' | 'alliance-blue' | 'neutral-short' | 'neutral-tall'
@@ -31,19 +34,8 @@ export {
 
 // ─────────────────────────── 场地常量 ───────────────────────────
 
-export const FIELD = {
-  /** 12 ft */
-  size: 3657.6,
-  half: 1828.8,
-  /** 单条白色胶带宽度 (mm) */
-  tapeWidth: 12,
-  /** 自主线「一对」胶带之间的间距 (mm)，实测 2.16 in */
-  midlineGap: 55,
-  /** 中场菱形顶点到中心的距离 (mm)，= 25 in */
-  diamondRadius: 635,
-  /** 地面垫厚度（渲染用） */
-  matThickness: 25,
-} as const
+/** 场地边长 (mm)，12 ft —— 只在「CAD 还没载入」的空壳里用一下 */
+export const FIELD_SIZE = 3657.6
 
 // ─────────────────────────── Goal ───────────────────────────
 
@@ -157,27 +149,6 @@ export const QUADRANT_GOALS: Record<QuadrantId, string[]> = {
   left: ['g-n2', 'g-r1'],
 }
 
-// ─────────────────────────── Toggle ───────────────────────────
-
-export interface ToggleSpec {
-  id: QuadrantId
-  /** 世界坐标 (mm)：贴在围栏每条边的中点 */
-  position: [number, number, number]
-  /** 沿围栏的方向 (rad)，0 = 沿 X 轴 */
-  rotationZ: number
-  /** 长 656.2 mm */
-  length: number
-  /** 宽 52.2 mm */
-  width: number
-}
-
-export const TOGGLES: ToggleSpec[] = [
-  { id: 'top', position: [0, FIELD.half + 6, 60], rotationZ: 0, length: 656.2, width: 52.2 },
-  { id: 'right', position: [FIELD.half + 6, 0, 60], rotationZ: Math.PI / 2, length: 656.2, width: 52.2 },
-  { id: 'bottom', position: [0, -FIELD.half - 6, 60], rotationZ: 0, length: 656.2, width: 52.2 },
-  { id: 'left', position: [-FIELD.half - 6, 0, 60], rotationZ: Math.PI / 2, length: 656.2, width: 52.2 },
-]
-
 // ─────────────────────────── 得分物 ───────────────────────────
 
 export interface HalfSpec {
@@ -265,25 +236,27 @@ export interface FieldJson {
   pinHeight: number
   cupHeight: number
   nestDepth: number
-  /** 63 Pin + 56 Cup 的开局位姿 */
+  /** 63 Pin + 56 Cup 的开局位姿（官方摆法） */
   startObjects?: {
     kind: 'pin' | 'cup'
     halves: string[]
     position: [number, number, number]
     rotation: [number, number, number]
+    /** 下半 → 上半的轴向（场地系）；侧躺的件靠它算落点 */
+    axis?: [number, number, number]
   }[]
 }
 
+/**
+ * CAD 还没载入时的空壳 —— app 在 `loadFieldSpec()` 成功之前不会渲染任何东西，
+ * 所以这份空壳只是为了让 `getFieldSpec()` 有个东西可返回。
+ */
 let spec: FieldJson = {
-  buildId: 'fallback',
-  source: 'built-in fallback (rules + field photo photogrammetry)',
-  fieldSize: FIELD.size,
-  goals: GOALS,
-  toggles: TOGGLES.map((t) => ({
-    id: t.id,
-    position: t.position,
-    rotationZ: t.rotationZ,
-  })),
+  buildId: 'none',
+  source: '未载入 CAD 资产',
+  fieldSize: FIELD_SIZE,
+  goals: [],
+  toggles: [],
   halves: HALVES,
   pinHeight: PIN_HEIGHT,
   cupHeight: CUP_HEIGHT,
@@ -294,30 +267,49 @@ export function getFieldSpec(): FieldJson {
   return spec
 }
 
-/** 载入 CAD 导出的 field.json；失败或不全则保留 fallback */
+/**
+ * 载入 CAD 导出的 field.json。
+ *
+ * ★ 载入不到就**抛错**（由 App 显示「请先生成 CAD 资产」）——
+ *   绝不悄悄退回手搓几何：那会让屏幕上出现一个「看起来差不多」但其实不是
+ *   官方场地的场地，比直接报错更糟。
+ */
 export async function loadFieldSpec(url = 'assets/field.json'): Promise<FieldJson> {
-  try {
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const ct = res.headers.get('content-type') ?? ''
-    if (!ct.includes('json')) throw new Error(`不是 JSON（${ct}）`)
-    const json = (await res.json()) as FieldJson
-    if (!json.goals?.length) throw new Error('没有 goals')
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`field.json 载入失败（HTTP ${res.status}）`)
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.includes('json')) throw new Error(`field.json 不是 JSON（${ct}）`)
+  const json = (await res.json()) as FieldJson
+  if (!json.goals?.length) throw new Error('field.json 里没有 goals')
+  if (!json.toggles?.length) throw new Error('field.json 里没有 toggles')
 
-    // CAD 导出的 Goal 可能不全（早期版本少了 2 个中立矮 goal），缺的就用兜底数据补齐
-    const byId = new Map(json.goals.map((g) => [g.id, g]))
-    const goals = GOALS.map((fb) => byId.get(fb.id) ?? fb)
-    for (const g of json.goals) if (!goals.find((x) => x.id === g.id)) goals.push(g)
+  // 9 个 goal 必须齐全 —— 少一个就是导出出了问题，别拿常量悄悄补一个假的
+  const ids = new Set(json.goals.map((g) => g.id))
+  const missing = GOALS.map((g) => g.id).filter((id) => !ids.has(id))
+  if (missing.length) throw new Error(`field.json 少了 goal：${missing.join(', ')}`)
 
-    spec = {
-      ...json,
-      goals,
+  spec = json
+
+  // 运行期一律用 CAD 的值：把 field.json 里的 goal 写进 GOAL_BY_ID。
+  // 各处 import 到的都是**同一个对象**，所以这里一改，各处都能看到最新的值。
+  for (const g of json.goals) GOAL_BY_ID[g.id] = g
+
+  // 上面那份 GOALS 常量是「CAD 实测值的手抄本」，跟 field.json 对一下，别悄悄漂了
+  for (const g of json.goals) {
+    const ref = GOALS.find((x) => x.id === g.id)
+    if (!ref) continue
+    const d = Math.hypot(
+      ref.position[0] - g.position[0],
+      ref.position[1] - g.position[1],
+    )
+    if (d > 1) {
+      console.warn(
+        `[fieldSpec] ${g.id} 的位置和 fieldSpec.ts 里的常量差了 ${d.toFixed(1)} mm，以 CAD 为准`,
+      )
     }
-    return spec
-  } catch (err) {
-    console.info('[fieldSpec] 未载入 CAD 导出的 field.json，使用内置兜底数据：', err)
-    return spec
   }
+
+  return spec
 }
 
 /**

@@ -12,13 +12,13 @@ import { useEffect, useState } from 'react'
  *   public/assets/half_<color>.glb     5 种得分物半体（red/blue/yellow/clear/gray）
  *   public/assets/field.json           变换、尺寸、socket 等
  *
- * 任何一项缺失都**静默回退到程序化几何**（src/scene/geometry.ts），
- * 所以没有 CAD 资产时应用照常可用。
+ * ★ 场地的几何**只有这一份来源**：少任何一个文件，app 就直接报错退出
+ *   （见 `checkAssets()`），不会再拿「手搓的近似几何」顶替。
  *
  * ── 坐标系 ──
  * CAD 导出的几何用的是「X 东 / Y 北 / Z 上」的三元组，而 three.js 是 Y-up，
  * 所以载入后统一绕 X 轴转 -90°：(x, y, z) → (x, z, -y)。
- * 这与 `fieldSpec.toThree()` 是同一个变换，保证 CAD 件和程序化件对齐。
+ * 这与 `fieldSpec.toThree()` 是同一个变换，保证所有件对齐。
  */
 
 const loader = new GLTFLoader()
@@ -43,7 +43,7 @@ async function remoteSize(url: string): Promise<number> {
   }
 }
 
-/** 载入一个 glb；不存在、太胖或出错时返回 null（回退到程序化几何） */
+/** 载入一个 glb；不存在、太胖或出错时返回 null（这个件就画不出来） */
 export function loadGlb(url: string): Promise<THREE.Object3D | null> {
   let p = cache.get(url)
   if (!p) {
@@ -70,7 +70,7 @@ export function loadGlb(url: string): Promise<THREE.Object3D | null> {
  *
  * CAD 导出的 glb 有时会出现「索引越界 + drawRange.count = Infinity」，
  * 那种几何在 GPU 上画出来是垃圾（射线检测的距离甚至是 NaN），
- * 所以载入前必须验一遍，不合格就回退到程序化几何。
+ * 所以载入前必须验一遍，不合格就当这个资产没有（不画）。
  */
 export function isGeometrySane(mesh: THREE.Mesh): boolean {
   const g = mesh.geometry
@@ -107,6 +107,36 @@ const HALF_FILES: Record<string, string> = {
   gray: 'assets/half_gray.glb',
 }
 
+/** app 需要的全部 CAD 资产（缺一个就说明没跑过 `tools/extract_field.py`） */
+export const REQUIRED_ASSETS = [
+  'assets/field.json',
+  'assets/field.glb',
+  ...Object.values(VARIANT_FILES),
+  ...Object.values(HALF_FILES),
+]
+
+/**
+ * 开跑前先体检：这些文件缺了就直接报错，别等渲染到一半才发现少了半个场地。
+ * 用 HEAD 请求（不下载正文），本地 dev server 上是毫秒级的。
+ */
+export async function checkAssets(): Promise<{ ok: boolean; missing: string[] }> {
+  const missing: string[] = []
+  await Promise.all(
+    REQUIRED_ASSETS.map(async (url) => {
+      try {
+        const res = await fetch(url, { method: 'HEAD' })
+        const ct = res.headers.get('content-type') ?? ''
+        // dev server 找不到的路径会回 index.html（SPA fallback，状态码还是 200），
+        // 所以 content-type 是 text/html 也要当成「没有这个文件」
+        if (!res.ok || ct.includes('text/html')) missing.push(url)
+      } catch {
+        missing.push(url)
+      }
+    }),
+  )
+  return { ok: missing.length === 0, missing }
+}
+
 /** 取出 glb 里第一个带三角形的 mesh */
 export function firstMesh(root: THREE.Object3D): THREE.Mesh | null {
   let found: THREE.Mesh | null = null
@@ -129,8 +159,17 @@ function bake(root: THREE.Object3D): THREE.BufferGeometry | null {
   return geo
 }
 
-/** 整棵子树都转到 three 坐标系（变换烘进各自的几何） */
+/**
+ * 整棵子树都转到 three 坐标系（变换烘进各自的几何）。
+ *
+ * ★ **只能转一次**：同一个 glb 的 root 是**共享**的（`loadGlb` 缓存了 promise），
+ *   而 React StrictMode 在开发模式下会把 effect 跑两遍 —— 于是同一个 root
+ *   会被 `bakeRoot` 处理两次，第二次**又转了一次 -90°**，整块场地就躺下了
+ *   （表现是「完整性检查说没有地面垫」→ 悄悄退回手搓场地）。
+ *   所以这里用 `userData.baked` 记一笔，第二次直接跳过。
+ */
 export function bakeRoot(root: THREE.Object3D, toThree = CAD_TO_THREE): void {
+  if (root.userData.baked) return
   root.updateMatrixWorld(true)
   root.traverse((o) => {
     const m = o as THREE.Mesh
@@ -151,6 +190,7 @@ export function bakeRoot(root: THREE.Object3D, toThree = CAD_TO_THREE): void {
   root.position.set(0, 0, 0)
   root.rotation.set(0, 0, 0)
   root.scale.set(1, 1, 1)
+  root.userData.baked = true
   root.updateMatrix()
   root.updateMatrixWorld(true)
 }
@@ -169,7 +209,7 @@ export interface GoalAsset {
  * 由调用方按节点名上色；如果是合并成一件的几何，就返回它的几何供整体上色。
  *
  * 会做一次**尺寸自检**：几何在 up 轴上的高度必须和 expectedHeight 差不多，
- * 否则判定为导出有问题，回退到程序化几何。
+ * 否则判定为导出有问题，这个 goal 就不画。
  */
 const goalCache = new Map<string, Promise<GoalAsset | null>>()
 
@@ -213,14 +253,14 @@ async function loadGoalObjectUncached(
   }
   for (const m of meshes) {
     if (!isGeometrySane(m)) {
-      console.warn(`[assets] ${url} 的索引缓冲损坏，回退程序化几何`)
+      console.warn(`[assets] ${url} 的索引缓冲损坏，不画这个件`)
       return null
     }
   }
   const h = box.max.y - box.min.y
   if (Math.abs(h - expectedHeight) > 25) {
     console.warn(
-      `[assets] ${url} 高度 ${h.toFixed(1)}mm 与预期 ${expectedHeight}mm 不符，回退程序化几何`,
+      `[assets] ${url} 高度 ${h.toFixed(1)}mm 与预期 ${expectedHeight}mm 不符，不画这个 goal`,
     )
     return null
   }
@@ -270,7 +310,7 @@ export function loadHalfGeometry(color: string): Promise<THREE.BufferGeometry | 
     if (!root) return null
     const mesh = firstMesh(root)
     if (!mesh || !isGeometrySane(mesh)) {
-      console.warn(`[assets] ${url} 的索引缓冲损坏，回退程序化几何`)
+      console.warn(`[assets] ${url} 的索引缓冲损坏，不画这个件`)
       return null
     }
     return bake(root)
