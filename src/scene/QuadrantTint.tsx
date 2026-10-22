@@ -53,9 +53,9 @@ const STATE_COLOR = TOGGLE_STATE_COLOR
 
 /** 黄色是「常态」（谁都不拥有），染得淡一点；红/蓝才是要看的，一眼就要跳出来 */
 const STATE_ALPHA: Record<ToggleState, number> = {
-  red: 0.18,
-  blue: 0.18,
-  yellow: 0.13,
+  red: 0.19,
+  blue: 0.19,
+  yellow: 0.16,
 }
 
 /** 中场区域 = 中心的菱形（4 个区域之外剩下的那块） */

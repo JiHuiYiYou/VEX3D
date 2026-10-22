@@ -113,8 +113,15 @@ def main():
             return
         time.sleep(4)
 
-        # ── overview：默认 45° 视角 ─────────────────────────
+        # ── overview：默认 45° 视角 + 官方开局布局（摆场）────
+        # 首图用摆场后的状态：场上摆着红/蓝/黄的得分物，一眼能看出这工具干嘛的
+        pg.click("text=摆场")
+        time.sleep(3)
+        camera(pg, (4100, 3400, 0))   # 摆场会把镜头切到俯视，这里切回 45°
+        time.sleep(3)
         shot(pg, "overview.png")
+        pg.click("text=重置")
+        time.sleep(1.5)
 
         # ── topdown：正上方俯视（北在上）─────────────────────
         camera(pg, (0, 5200, 0), (0, 0, -1))

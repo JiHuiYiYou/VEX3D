@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
@@ -11,6 +11,43 @@ import { DragGhost } from './DragGhost'
 import { useApp } from '@/state/store'
 import { getFieldSpec } from '@/data/fieldSpec'
 import { sceneBridge } from './bridge'
+import { buildEnvironment, makeApronTexture, makeSkyTexture } from './fieldLook'
+
+/**
+ * 天空穹顶 + 环境贴图。
+ *
+ * 有了环境贴图，PBR 材质才有干净的高光和色彩过渡，
+ * 就不用把环境光开很大（那样整张画面会发灰发平）。
+ */
+function Atmosphere() {
+  const { gl, scene } = useThree()
+
+  useEffect(() => {
+    const env = buildEnvironment(gl)
+    scene.environment = env
+    scene.environmentIntensity = 1.15
+    return () => {
+      scene.environment = null
+      env.dispose()
+    }
+  }, [gl, scene])
+
+  const sky = useMemo(() => makeSkyTexture(), [])
+  const apron = useMemo(() => makeApronTexture(), [])
+  return (
+    <>
+      <mesh renderOrder={-1} frustumCulled={false}>
+        <sphereGeometry args={[15000, 32, 16]} />
+        <meshBasicMaterial map={sky} side={THREE.BackSide} depthWrite={false} fog={false} />
+      </mesh>
+      {/* 围栏外的「舞台」地面：给场地一个底，别让四周是一片死黑 */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -17.5, 0]} receiveShadow>
+        <planeGeometry args={[9000, 9000]} />
+        <meshBasicMaterial map={apron} />
+      </mesh>
+    </>
+  )
+}
 
 function BridgeSetup() {
   const { camera, gl, invalidate, scene, gl: renderer } = useThree()
@@ -33,14 +70,18 @@ function Scene({ onError }: { onError?: (msg: string) => void }) {
   return (
     <>
       <BridgeSetup />
-      <color attach="background" args={['#15181d']} />
-      {/* DEBUG */}
+      <color attach="background" args={['#0b1020']} />
+      <Atmosphere />
 
-      <ambientLight intensity={0.55} />
-      <hemisphereLight args={['#ffffff', '#40454d', 0.6]} />
+      {/* 灯光：暖主光（投影）+ 冷补光 + 暖轮廓光。
+          环境光刻意压得很低 —— 亮度主要来自环境贴图和主光，
+          画面才有明暗和颜色，而不是一片均匀的灰。 */}
+      <ambientLight intensity={0.24} color="#9fb4d6" />
+      <hemisphereLight args={['#a9c8ff', '#0d1015', 0.42]} />
       <directionalLight
-        position={[2200, 4200, 3200]}
-        intensity={1.5}
+        position={[2400, 4800, 2200]}
+        intensity={1.55}
+        color="#fff6ea"
         castShadow={shadows}
         shadow-mapSize-width={quality === 'high' ? 2048 : 1024}
         shadow-mapSize-height={quality === 'high' ? 2048 : 1024}
@@ -52,7 +93,10 @@ function Scene({ onError }: { onError?: (msg: string) => void }) {
         shadow-camera-far={12000}
         shadow-bias={-0.0008}
       />
-      <directionalLight position={[-2500, 2000, 1800]} intensity={0.35} />
+      {/* 冷补光：对面低角度，把暗部提一点（带一点蓝，画面才有冷暖对比） */}
+      <directionalLight position={[-3000, 1500, -2400]} intensity={0.7} color="#7d9dd6" />
+      {/* 轮廓光：北面低角度，把围栏和 goal 的边缘勾出来 */}
+      <directionalLight position={[-400, 700, -3200]} intensity={0.4} color="#ffcf94" />
 
       {/* 官方 CAD 的静态场地 —— 场地的**唯一**几何来源。
           资产不完整时由 onError 报给 App（整屏提示），不拿手搓几何顶替。 */}

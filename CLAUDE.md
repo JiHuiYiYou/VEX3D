@@ -59,6 +59,7 @@ src/
   state/store.ts     zustand store
   state/drag.ts      拖拽指针状态（放在 React 之外，避免每帧重渲染）
   scene/stackLayout.ts ★ 堆叠几何：半体摆放 + 嵌套落点（3D / 幽灵件 / 测试共用）
+  scene/fieldLook.ts  ★ 场地「长相」：配色表 / 垫子贴图 / 环境贴图 / 围栏条纹
   scene/LooseItems.tsx  场上不在 goal 里的得分物（散件）
   data/presets.ts      ★ 官方开局布局（摆场预设，由 tools/extract_setup.py 生成）
   scene/             R3F 场景：场地 / goal / 得分物 / toggle / 区域染色 / 拖拽幽灵件
@@ -107,6 +108,22 @@ src/
 
 **CAD 里的颜色全是 SolidWorks 默认值**（0.792/0.820/0.933），没有可用信息 → 颜色一律由
 `scene/materials.ts` 的 `materialFor(name, goalColor)` 按零件名指派。
+
+### 场地「长相」层（`scene/fieldLook.ts`）
+
+CAD 导出的 glb **既没有材质也没有 UV** → 颜色、贴图、光照全靠前端这一层：
+
+| 东西 | 怎么做 |
+|---|---|
+| 垫子贴图 | `makeMatTexture()` 程序生成 canvas 贴图（底色 + 中心冷 / 外圈暖的分层 + 竞技场大圆 + 角弧 + 颗粒）；**UV 是前端补的**（`planarUV()` 按 x/z 平面投影，CAD 没给 UV） |
+| 围栏顶压条 | `stripedMaterial(axis)` —— 用 `onBeforeCompile` 在片元着色器里按**世界坐标**画黑白条纹（CAD 没 UV 也没法贴图）；长边方向由包围盒判断（`dx >= dz ? 'x' : 'z'`） |
+| 围栏 / 角柱 / 胶带 / 联盟站墙 | 按零件名在 `materialFor()` 里指派（`LOOK` 配色表） |
+| 环境光照 | `buildEnvironment(renderer)` → PMREM 环境贴图（一个自建的小场景：天穹 + 太阳 + 冷色反弹）；`scene.environmentIntensity = 1.15` |
+| 背景 / 舞台 | `makeSkyTexture()` 贴一个 r=15000 的穹顶；`makeApronTexture()` 给围栏外一圈「舞台」地面 |
+| 灯光 | 暖主光（投影）+ 冷补光 + 暖轮廓光，**环境光压到 0.24** —— 亮度主要来自环境贴图，画面才有明暗和冷暖，不是均匀的灰 |
+
+⚠️ 这一层只管**长什么样**，不改几何 —— 形状永远只有官方 CAD 那一份 ✓。
+新增零件时：先在 `field.glb` 里查它的 PRODUCT 名，再在 `materialFor()` 里加一条。
 
 - **goal 位置**：598.06 / 1196.12 mm（**不是** 25 in 网格，比手册的 635/1270 小 82.6 mm；
   中场菱形半对角 611.49 vs 手册 635，goal 环半径 1337.3 vs 1420）。

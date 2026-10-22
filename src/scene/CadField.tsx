@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import { bakeRoot, loadGlb } from './assets'
 import { materialFor } from './materials'
+import { planarUV } from './fieldLook'
 import { useApp } from '@/state/store'
 import { COLORS } from '@/data/fieldSpec'
 import type { QuadrantId, ToggleState } from '@/data/fieldSpec'
@@ -86,7 +87,16 @@ export function CadField({ onError }: { onError?: (msg: string) => void }) {
           // 场地是平的，不需要投影（省一大笔 shadow pass）
           m.castShadow = false
           m.receiveShadow = true
-          m.material = materialFor(o.name || '')
+          // CAD 导出没有 UV → 垫子按平面投影补一套（贴图才铺得开）
+          m.geometry.computeBoundingBox()
+          const bb = m.geometry.boundingBox
+          if (bb && /6904-001/i.test(o.name || '')) {
+            planarUV(m.geometry, Math.max(Math.abs(bb.min.x), Math.abs(bb.max.x)))
+          }
+          // 压条的黑白条纹要按长边方向画 → 用包围盒判断这条是横的还是竖的
+          const dx = bb ? bb.max.x - bb.min.x : 0
+          const dz = bb ? bb.max.z - bb.min.z : 0
+          m.material = materialFor(o.name || '', undefined, dx >= dz ? 'x' : 'z')
         }
       })
       setRoot(r)
