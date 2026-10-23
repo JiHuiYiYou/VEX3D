@@ -273,9 +273,25 @@ export function getFieldSpec(): FieldJson {
  * ★ 载入不到就**抛错**（由 App 显示「请先生成 CAD 资产」）——
  *   绝不悄悄退回手搓几何：那会让屏幕上出现一个「看起来差不多」但其实不是
  *   官方场地的场地，比直接报错更糟。
+ *
+ * ★ 网络抖动要**重试**：一次 fetch 失败不等于文件不存在。
  */
 export async function loadFieldSpec(url = 'assets/field.json'): Promise<FieldJson> {
-  const res = await fetch(url)
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+  let res: Response | null = null
+  let lastErr: unknown = null
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      res = await fetch(url)
+      if (res.ok) break
+      // 4xx 是真的没有；5xx 才值得重试
+      if (res.status < 500) break
+    } catch (err) {
+      lastErr = err
+    }
+    if (attempt < 3) await sleep(400 * attempt)
+  }
+  if (!res) throw new Error(`field.json 载入失败（网络错误）`, { cause: lastErr })
   if (!res.ok) throw new Error(`field.json 载入失败（HTTP ${res.status}）`)
   const ct = res.headers.get('content-type') ?? ''
   if (!ct.includes('json')) throw new Error(`field.json 不是 JSON（${ct}）`)

@@ -93,6 +93,14 @@ export default function App() {
           这个 app 的场地几何<strong>只有官方 Field CAD 一份来源</strong>，没有手搓的兜底版本 ——
           缺资产就直接报错，免得看到一个「像官方场地但其实不是」的东西。
         </p>
+        <p>
+          <button className="tbtn" onClick={() => window.location.reload()}>
+            重新加载
+          </button>{' '}
+          <span className="muted">
+            （网络抖动导致下载中断的话，重载一下就好 —— 场地有 8.5 MB，不稳的 wifi 上会断）
+          </span>
+        </p>
         <pre>
           {`# 1. 解析官方 STEP（首次约 8 分钟）
 tools/.venv/Scripts/python.exe tools/build_cache.py

@@ -29,36 +29,74 @@ const MAX_GLB_BYTES = 40 * 1024 * 1024
 
 const CAD_TO_THREE = new THREE.Matrix4().makeRotationX(-Math.PI / 2)
 
-/** 探测一个资源的总大小（字节）；拿不到就返回 0 */
+/**
+ * 探测一个资源的总大小（字节）；拿不到就返回 0。
+ *
+ * ⚠️ **探针必须跟真正的请求分开**：
+ *   很多 CDN（GitHub Pages 就是）支持 Range，`bytes=0-0` 会回一个
+ *   **206 + 只有 1 个字节**的响应。浏览器可能把这个 206 缓存下来，
+ *   紧接着的整取请求命中了它 → **只拿到 1 个字节** → glb 解析失败。
+ *   所以探针走一个**带 query 的独立 URL**（缓存键不同），而且 `cache: 'no-store'`
+ *   （连存都不存）。
+ */
 async function remoteSize(url: string): Promise<number> {
   try {
     // Range 请求最可靠：Content-Range: "bytes 0-0/12345678"
-    const res = await fetch(url, { headers: { Range: 'bytes=0-0' } })
+    const res = await fetch(`${url}?__size=1`, {
+      headers: { Range: 'bytes=0-0' },
+      cache: 'no-store',
+    })
     const cr = res.headers.get('content-range')
     if (cr) return Number(cr.split('/')[1] ?? 0)
-    const head = await fetch(url, { method: 'HEAD' })
+    const head = await fetch(url, { method: 'HEAD', cache: 'no-store' })
     return Number(head.headers.get('content-length') ?? 0)
   } catch {
     return 0
   }
 }
 
+/** 失败后等一下再试（线性退避） */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * 一次下载最多试几次。
+ *
+ * ★ 场地的 `field.glb` 有 8.5 MB —— 在不稳的 wifi 上（比赛现场！）传到一半断了
+ *   是常事。断了之后 glb 解析必然失败；之前这里直接返回 null，**而且把失败
+ *   永久缓存了** → 一次抖动 = 整个会话都出不来那张报错页，只能手动刷新 ✗
+ *   所以：重试几次 + 失败不缓存。
+ */
+const MAX_ATTEMPTS = 3
+
 /** 载入一个 glb；不存在、太胖或出错时返回 null（这个件就画不出来） */
 export function loadGlb(url: string): Promise<THREE.Object3D | null> {
   let p = cache.get(url)
   if (!p) {
     p = (async () => {
-      try {
-        const size = await remoteSize(url)
-        if (size > MAX_GLB_BYTES) {
-          console.warn(`[assets] ${url} 体积 ${(size / 1e6).toFixed(0)}MB 超过上限，跳过`)
-          return null
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          const size = await remoteSize(url)
+          if (size > MAX_GLB_BYTES) {
+            console.warn(`[assets] ${url} 体积 ${(size / 1e6).toFixed(0)}MB 超过上限，跳过`)
+            return null
+          }
+          const gltf = await loader.loadAsync(url)
+          return gltf.scene
+        } catch (err) {
+          console.warn(
+            `[assets] ${url} 第 ${attempt}/${MAX_ATTEMPTS} 次载入失败`,
+            err,
+            attempt === MAX_ATTEMPTS ? '（放弃）' : '（重试）',
+          )
+          if (attempt === MAX_ATTEMPTS) {
+            // ★ 失败**不要留在缓存里** —— 否则这个会话再也加载不出来
+            if (cache.get(url) === p) cache.delete(url)
+            return null
+          }
+          await sleep(400 * attempt)
         }
-        const gltf = await loader.loadAsync(url)
-        return gltf.scene
-      } catch {
-        return null
       }
+      return null
     })()
     cache.set(url, p)
   }
@@ -118,19 +156,33 @@ export const REQUIRED_ASSETS = [
 /**
  * 开跑前先体检：这些文件缺了就直接报错，别等渲染到一半才发现少了半个场地。
  * 用 HEAD 请求（不下载正文），本地 dev server 上是毫秒级的。
+ *
+ * ★ 网络抖动要**重试**：HEAD 失败一次不等于文件不存在 ——
+ *   一次抖动就判定「缺资产」→ 整个 app 拒绝启动 ✗
  */
 export async function checkAssets(): Promise<{ ok: boolean; missing: string[] }> {
   const missing: string[] = []
   await Promise.all(
     REQUIRED_ASSETS.map(async (url) => {
-      try {
-        const res = await fetch(url, { method: 'HEAD' })
-        const ct = res.headers.get('content-type') ?? ''
-        // dev server 找不到的路径会回 index.html（SPA fallback，状态码还是 200），
-        // 所以 content-type 是 text/html 也要当成「没有这个文件」
-        if (!res.ok || ct.includes('text/html')) missing.push(url)
-      } catch {
-        missing.push(url)
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const res = await fetch(url, { method: 'HEAD' })
+          const ct = res.headers.get('content-type') ?? ''
+          // dev server 找不到的路径会回 index.html（SPA fallback，状态码还是 200），
+          // 所以 content-type 是 text/html 也要当成「没有这个文件」
+          if (!res.ok || ct.includes('text/html')) {
+            missing.push(url)
+            return
+          }
+          return // 在 → 这个资产没问题
+        } catch {
+          if (attempt === 3) {
+            // 连着三次都失败 → 当作缺（页面上有「重新加载」的按钮）
+            missing.push(url)
+            return
+          }
+          await sleep(300 * attempt)
+        }
       }
     }),
   )

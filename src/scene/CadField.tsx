@@ -52,7 +52,9 @@ export function CadField({ onError }: { onError?: (msg: string) => void }) {
     loadGlb('assets/field.glb').then((r) => {
       if (!alive) return
       if (!r) {
-        onError?.('field.glb 载入失败（文件缺失或体积超限）')
+        onError?.(
+          'field.glb 载入失败（下载中断 / 文件缺失 / 体积超限）—— 点「重新加载」重试',
+        )
         return
       }
       // 完整性检查：既要有围栏，也要有**真正铺满场地的地面垫**

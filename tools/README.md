@@ -21,6 +21,8 @@ tools/
   # --- not part of the pipeline: browser-side checks (need the dev server) ---
   verify_ui.py        Playwright end-to-end checks (stacking rules, scoring, trash…)
   perf_ui.py          performance baseline (draw calls / triangles / frame time)
+  serve_range.py      static server that honours Range + can truncate downloads
+                       (reproduces what a CDN does → tests the asset retry)
   shot_stack.py       close-up screenshot of a Pin/Cup nest, for eyeballing
   shots.py            screenshots after the CAD assets have finished loading
   test_scoring.ts     scoring-engine regression tests (`npm test`)
