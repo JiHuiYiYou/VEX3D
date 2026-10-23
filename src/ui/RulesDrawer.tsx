@@ -6,6 +6,9 @@ export function RulesDrawer() {
   return (
     <section className="panel panel-rules">
       <button className="rules-toggle" onClick={() => setOpen((o) => !o)}>
+        <span className={`rules-caret ${open ? 'open' : ''}`} aria-hidden="true">
+          ▸
+        </span>
         {open ? '收起规则说明' : '规则说明（本工具采用的解读）'}
       </button>
       {open && (

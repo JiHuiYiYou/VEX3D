@@ -22,5 +22,12 @@ export function PlaceHint() {
   }, [placeError])
 
   if (!placeError || !visible) return null
-  return <div className="place-hint">⚠ {placeError.reason}</div>
+  return (
+    <div className="place-hint">
+      <span className="place-hint-icon" aria-hidden="true">
+        !
+      </span>
+      {placeError.reason}
+    </div>
+  )
 }

@@ -62,9 +62,9 @@ export function makeMatTexture(): THREE.CanvasTexture {
 
   // 冷暖分层：中心偏冷（青），外圈偏暖 —— 免得整块垫子是一张灰纸
   const cg = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S * 0.72)
-  cg.addColorStop(0, 'rgba(96,150,178,0.30)')
-  cg.addColorStop(0.5, 'rgba(140,146,150,0.10)')
-  cg.addColorStop(1, 'rgba(196,142,86,0.26)')
+  cg.addColorStop(0, 'rgba(96,150,178,0.20)')
+  cg.addColorStop(0.5, 'rgba(140,146,150,0.07)')
+  cg.addColorStop(1, 'rgba(196,142,86,0.15)')
   g.fillStyle = cg
   g.fillRect(0, 0, S, S)
 

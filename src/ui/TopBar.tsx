@@ -26,6 +26,17 @@ export function TopBar() {
   return (
     <header className="topbar">
       <div className="brand">
+        <span className="brand-mark" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 3 19.5 12 12 21 4.5 12z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+            />
+            <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+          </svg>
+        </span>
         <span className="brand-main">VEX Override 3D 战术分析</span>
         <span className="brand-sub">
           官方 Field CAD · {spec.source} · {spec.buildId}

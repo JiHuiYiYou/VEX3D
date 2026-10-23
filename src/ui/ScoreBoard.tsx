@@ -80,21 +80,30 @@ export function ScoreBoard() {
       </div>
 
       <div className="score-note">
-        联盟色 pin 半 5 分 · 被拥有的黄色 pin 半 10 分 · 中场每台机器人 8 分
+        <div className="score-legend">
+          <span>
+            <b>5</b>联盟色 pin 半
+          </span>
+          <span>
+            <b>10</b>被拥有的黄半
+          </span>
+          <span>
+            <b>8</b>中场每台机器人
+          </span>
+        </div>
         {(counts.red > 0 || counts.blue > 0) && (
-          <>
-            <br />
-            <span className="muted">
-              中场机器人：红 {counts.red} 台 <b className="red-txt">+{scores.robotPoints.red}</b> ·
-              蓝 {counts.blue} 台 <b className="blue-txt">+{scores.robotPoints.blue}</b>
-            </span>
-          </>
+          <div className="score-sub">
+            中场机器人：红 {counts.red} 台 <b className="red-txt">+{scores.robotPoints.red}</b> ·
+            蓝 {counts.blue} 台 <b className="blue-txt">+{scores.robotPoints.blue}</b>
+          </div>
         )}
         {scores.blocked > 0 && (
-          <>
-            <br />
-            <span className="warn">⚠ {scores.blocked} 个 pin 半被挡住，不得分</span>
-          </>
+          <div className="score-sub warn">
+            <i className="warn-dot" aria-hidden="true">
+              !
+            </i>
+            {scores.blocked} 个 pin 半被挡住，不得分
+          </div>
         )}
       </div>
 
@@ -143,7 +152,22 @@ export function ScoreBoard() {
           )
         })}
         {Object.keys(byGoal).length === 0 && (
-          <div className="hint small">还没有放置任何得分物。</div>
+          <div className="score-empty">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 3.5 20 12l-8 8.5L4 12z"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinejoin="round"
+              />
+              <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.4" />
+            </svg>
+            <span>
+              还没有放置任何得分物。
+              <br />
+              点场上的 <b>goal</b> 选它，再从左边拖一个 pin 上去。
+            </span>
+          </div>
         )}
       </div>
     </section>
