@@ -15,14 +15,23 @@ def triangulate(shape, lin_deflection=0.8, ang_deflection=0.35, relative=False):
 
     Coordinates are in the shape's own coordinate system (the shape's own
     TopLoc_Location is *not* applied -- callers transform explicitly).
+
+    ⚠️ OCCT 的 ``BRepMesh_IncrementalMesh`` **不会重画已经画过三角化的
+    shape** —— 它看到 shape 上已经挂着 triangulation 就直接返回。于��同一个
+    shape 对象第二次用不同的 deflection 调用，三角形数完全不变，参数形同
+    虚设（实测：0.3 mm 和 3.0 mm 都是 9041 个三角形）。
+    所以每次先 ``BRepTools.Clean`` 掉旧的三角化，deflection 才真的生效。
     """
     from OCP.BRep import BRep_Tool
+    from OCP.BRepTools import BRepTools
     from OCP.TopExp import TopExp_Explorer
     from OCP.TopoDS import TopoDS
     from OCP.BRepMesh import BRepMesh_IncrementalMesh
     from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
     from OCP.TopLoc import TopLoc_Location
 
+    # 丢掉上一次的三角化，否则这次的 deflection 不起作用（见上面的说明）
+    BRepTools.Clean_s(shape)
     BRepMesh_IncrementalMesh(shape, lin_deflection, relative, ang_deflection, True)
 
     verts = []

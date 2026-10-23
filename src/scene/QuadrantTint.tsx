@@ -115,12 +115,15 @@ export function QuadrantTint() {
             onPointerOver={() => useApp.getState().setHoverQuadrant(q)}
             onPointerOut={() => useApp.getState().setHoverQuadrant(null)}
           >
+            {/* `forceSinglePass`：透明 + 双面默认画两遍（背面 + 正面），
+                区域染色是贴地的薄片，一遍就够 → 每个区域省一个 draw call ✓ */}
             <meshBasicMaterial
               color={STATE_COLOR[state]}
               transparent
               opacity={hot ? STATE_ALPHA[state] * 2.2 : STATE_ALPHA[state]}
               depthWrite={false}
               side={THREE.DoubleSide}
+              forceSinglePass
             />
           </mesh>
         )
@@ -134,6 +137,7 @@ export function QuadrantTint() {
           opacity={STATE_ALPHA[midfieldState]}
           depthWrite={false}
           side={THREE.DoubleSide}
+          forceSinglePass
         />
       </mesh>
     </group>

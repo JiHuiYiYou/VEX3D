@@ -58,10 +58,12 @@
   所以直接给两个选项摆件，**不用再按「翻转」**；「翻转 pin」按钮只用来对调 pin 的上下两半。
 - **三种放法** —— 把左边的得分物**拖**到场上任意一个 goal；或者先点中一个 goal
   （场上会亮起青色环 + 一柱光，摞顶还有个落点环），再**单击**左边的得分物 → 直接落在它上面；
-  或者**先单击面板上的一个件把它端起来**，再点场上一个 goal → 放上去（能放的 goal 会亮绿环）。
+  或者**先单击一个得分物把它端起来**，再点场上一个 goal → 放上去（能放的 goal 会亮绿环）。
   三种放法都守同一套叠放规则，非法一律拒绝并弹提示。
-  （场上已有的得分物不会被「端起来」——点它只是选中，再点 goal 是**选中那个 goal**；
-  要把它放进 goal 请直接拖。）
+  （能被「端起来」的件有两种：左边面板上的件，和**场上（摆场）摆出来的散件** ——
+  单击场上的散件就把它端起来，跟面板上的件完全一样。
+  ★ 手里端着东西时，**点 goal 的第一反应是把它放上去**（叠在摞顶，goal 上已经有东西也一样放），
+  而不是「选中那个 goal」；没端着东西时，点 goal 才是选中它。）
 - **摆场 / 重置** —— 顶栏「摆场」按**官方开局布局**摆好全场（坐标来自官方 Field CAD，
   与官方 VEXcode VR Playground 的 GPS 表和得分物清单逐项吻合）；「重置」全部清空。
 - **两种件的形状不一样**（CAD 装配树实测）：**pin = 翻边对翻边的线轴**，
@@ -118,6 +120,10 @@ tools/.venv/Scripts/python.exe tools/extract_field.py --with-wall-trim
 tools/.venv/Scripts/python.exe tools/validate_assets.py
 ```
 
+> 导出会顺手把**得分物半体**做一次 QEM 减面（误差预算 0.05 mm，`tools/decimate.py`）——
+> CAD 里一个半体有 742 个面，逐面三角化出来一万多个三角形；
+> 减面后每帧三角形少三分之二，近景看不出差别。场地本体不减。
+
 产物在 `public/assets/`（不入库）。管线细节见 [`tools/README.md`](tools/README.md)。
 
 ## 项目结构
@@ -147,7 +153,8 @@ docs/                 README 用的截图
 | `npm run preview` | 预览 `dist/` |
 | `npm test` | 计分引擎回归测试（Node 直接跑 `.ts`，需要 Node 22.18+ / 24） |
 | `npm run typecheck` | 只做类型检查 |
-| `C:/.../miniconda3/python.exe tools/verify_ui.py` | Playwright 端到端验证（56 项断言 + 截图） |
+| `C:/.../miniconda3/python.exe tools/verify_ui.py` | Playwright 端到端验证（61 项断言 + 截图） |
+| `C:/.../miniconda3/python.exe tools/perf_ui.py` | 性能基线（draw call / 三角形 / 帧时间 / 交互延迟；要 dev server 起着） |
 | `C:/.../miniconda3/python.exe tools/shot_stack.py` | 拍一张 Pin/Cup 嵌套特写（肉眼核对用） |
 
 ### 可选：接上 VEX 规则查询 MCP

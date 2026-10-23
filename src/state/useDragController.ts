@@ -23,8 +23,6 @@ import { pickDropTarget, pickOnPlane, sceneBridge, stageRect } from '@/scene/bri
  *   （斜视角下偏差能到好几米）→ 件会飞到天边，看起来像凭空消失 ✗
  */
 export function useDragController() {
-  const dragging = useApp((s) => s.dragging)
-
   // ① 指针位置一直跟踪（要靠它区分点击和拖动，所以不能只在拖拽时才记）
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -84,18 +82,26 @@ export function useDragController() {
   }, [])
 
   // ② 一次拖拽的开始 / 结束
+  //
+  // ★ **不用 React state 订阅 `dragging`**：
+  //   订阅它 = `App` 重渲染 → `Canvas` 重渲染 → R3F 的**整棵树**重渲染
+  //   （一次拖拽开始要多花 80 ms，而且每个 3D 组件都跟着重渲染一遍）✗
+  //   改成直接订阅 store（`useApp.subscribe`）+ 一个**常驻**的 pointerup 监听器 ✓
+  //   拖拽态在 3D 里怎么用（OrbitControls 的开关、落点高亮）由场景内部自己订阅 ✓
   useEffect(() => {
-    if (!dragging) {
-      resetDragPointer()
-      return
-    }
+    resetDragPointer()
 
-    // 本次的起点 = 按下时的指针位置；还没动过 → 这次算「点击」
-    dragPointer.startX = dragPointer.clientX
-    dragPointer.startY = dragPointer.clientY
-    dragPointer.moved = false
-    // 上一次拖拽可能停在垃圾桶边上 → 状态要清掉，别连累下一次点击
-    useApp.getState().setOverTrash(false)
+    // 拖拽**开始**的那一刻：记下起点（用来区分「点击」和「拖动」）
+    const unsub = useApp.subscribe((state, prev) => {
+      if (state.dragging && !prev.dragging) {
+        // 本次的起点 = 按下时的指针位置；还没动过 → 这次算「点击」
+        dragPointer.startX = dragPointer.clientX
+        dragPointer.startY = dragPointer.clientY
+        dragPointer.moved = false
+        // 上一次拖拽可能停在垃圾桶边上 → 状态要清掉，别连累下一次点击
+        state.setOverTrash(false)
+      }
+    })
 
     const onUp = () => {
       const st = useApp.getState()
@@ -124,13 +130,15 @@ export function useDragController() {
       // 移动过 → 「端着的件」作废（它是拖走的，不是点 goal 放上去的）
       if (moved) st.setPending(null)
       st.setDragging(null)
+      resetDragPointer()
     }
 
     window.addEventListener('pointerup', onUp, { capture: true })
     window.addEventListener('pointercancel', onUp, { capture: true })
     return () => {
+      unsub()
       window.removeEventListener('pointerup', onUp, { capture: true })
       window.removeEventListener('pointercancel', onUp, { capture: true })
     }
-  }, [dragging])
+  }, [])
 }

@@ -38,6 +38,8 @@ C:/Users/liuzhen/miniconda3/python.exe tools/verify_ui.py   # 端到端（需先
   它们**不参与计分**（手册只算 goal 里的 pin 和中场的机器人）。
 - **散件能拖能删**：拖到画布边缘 → 垃圾桶删掉；拖到某个 goal 上 → 进那个 goal 的摞
   （非法组合照常拒绝）；拖到别处 → 挪位置。
+- **散件也能「端起来」**：单击场上的散件 = 把它端起来（`store.pending`，`looseId` 记着它是谁），
+  接着点一个 goal 就放进去（放进去后它从散件列表里删掉）；再点一次这个散件 = 放下。
 - **散件的三种形态**（`LooseItem`）：
   | 形态 | 字段 | 落点 |
   |---|---|---|
@@ -52,6 +54,8 @@ C:/Users/liuzhen/miniconda3/python.exe tools/verify_ui.py   # 端到端（需先
 fieldcad/            官方场地 CAD（126 MB STEP，AP214，毫米）——源文件，不入库
 public/assets/       CAD 管线产物（不入库）
 tools/               离线 Python 管线（OCP）+ 验证脚本（extract_field / verify_ui / shot_*）
+  perf_ui.py         ★ 性能基线（Playwright 量 draw call / 三角形 / 帧时间 / 交互延迟）
+  decimate.py        QEM 边塌缩减面（半体几何，误差预算 0.05 mm）
 src/
   data/terms.ts      ★ 统一词表（颜色 / 区域名 / 零件名），**不 import 任何东西**
   data/fieldSpec.ts  场地规格 + 坐标系换算 + CAD 实测常量
@@ -153,6 +157,9 @@ CAD 导出的 glb **既没有材质也没有 UV** → 颜色、贴图、光照�
   （CAD 里 Clear 半在 −85 不旋转、Dark Gray 半在 +85 且绕 Z 转 180° → 两个杯口在中间接合。）
   **两种件拼法不同，别按同一种画。**
 - 半体局部约定：翻边在原点、本体沿 −Y、尖端/杯口在 −height。
+- **半体几何按颜色共用一份**（`assets.ts` 的 `halfGeoCache`）：`bake()` 是**克隆**几何的，
+  不缓存的话每个 `HalfMesh` 组件都拿一份自己的拷贝（摆场一次 = 114 散件 × 2 半体 = 228 份），
+  几百个 GPU buffer 传上去，换个选中态就卡十几秒 ✗。R3F 不会 dispose 作为 prop 传的几何 ✓。
 - **哪个半体在上**：pin 的**领口**（翻边）相接、cup 的**细腰**相接 →
   pin 的下半 = 领口高的那个，cup 的下半 = 杯口低的那个 ✓（`tools/extract_field.py`
   里用导出矩阵算 ✗ 别用 CAD 装配树的顺序 ✗）。
@@ -165,6 +172,48 @@ CAD 导出的 glb **既没有材质也没有 UV** → 颜色、贴图、光照�
   - 接触面留 `SEAT_EPS = 0.3 mm`（cup 下沿与 pin 腰几乎同径且共面，不留缝会闪 z-fighting）。
 - **罩住关系**：cup 的**下半**罩住它下面那个 pin 的**上半**；cup 的**上半**罩住它上面那个
   pin 的**下半**。罩住的那一半透明 → 照常计分；灰色 → 不得分。
+
+## 性能（2026-10 优化）
+
+摆场之后是**最重的场景**：114 个散件 + 5 个 goal 的摞 = 455 个 mesh。
+量法：`C:/Users/liuzhen/miniconda3/python.exe tools/perf_ui.py`（要 dev server 起着）。
+
+| 指标 | 优化前 | 优化后 |
+|---|---|---|
+| 材质实例（去重） | 437 | **44** |
+| shader program | 17 | **9** |
+| 每帧 draw call | 917 | **418** |
+| 每帧三角形 | 7.53 M | **0.98 M** |
+| 一次交互的纯 JS 开销（GL 摘掉后） | 24–201 ms | **4–5 ms** |
+| 一帧的墙钟（无头软件渲染） | ~8.8 s | **~13 ms** |
+
+> 无头环境是 SwiftShader 软件渲染，数字比真机 GPU 慢一到两个数量级 ——
+> 这里的数字只用于 **before/after 对比**。
+
+改了什么（都是「不改观感」的前提下）：
+
+- ★ **半体几何做了 QEM 减面**（`tools/decimate.py`，误差预算 **0.05 mm**）。
+  CAD 里 pin 半体有 742 个面（模出来的圆角/凸字/筋），OCCT 逐面三角化 →
+  一个半体 9000~12000 个三角形。**调 deflection 没用**（0.3 → 2.0 mm 只省 13%，
+  三角形数是面数决定的）。减面后观感对比过，近景看不出差别 ✓。
+  场地本体（地砖/围栏/胶带）**没减**（`SIMPLIFY["field"] = None`）—— 那些面看得见。
+- ★ **不能用 `transmission`**：场景里只要有一个 `transmission > 0` 的材质，
+  three.js 每帧就把整个场景**额外渲染一遍**（transmission backdrop pass）
+  → draw call 直接翻倍（968 ≈ 455 × 2）。透明杯改用「普通透明 + clearcoat +
+  环境反射」，看起来一样是玻璃的，只是没有折射 ✓。
+  透明 + 双面的材质还要加 `forceSinglePass: true`，否则 three.js 默认画两遍。
+- **材质按「规格」共享**（`scene/materials.ts` 的 `shared()`）——CAD 里同一个 PRODUCT
+  会导出成很多节点（`_1` `_2` …），之前每调一次 `materialFor()` 就 new 一份。
+  ⚠️ 共享的代价：**不能再单独改某个 mesh 的材质属性**（会串到所有同类的件上）。
+- **半体几何按颜色共用一份**（`scene/assets.ts` 的 `halfGeoCache`）——
+  `bake()` 是克隆几何的，不缓存的话 228 个半体各有各的拷贝。
+- **散件按 id 逐个订阅 + `React.memo`**（`scene/LooseItems.tsx`）：
+  以前任何一次 store 变化都让 114 个散件整批重渲染（456 次半体渲染 → 0 次）。
+- **隐形拾取体不渲染**：`opacity: 0` 的点击热区 / 放置目标 / 碰撞体改成
+  `visible={false}` —— **three.js 的 Raycaster 不看 `visible`**，照样点得中、拖得动 ✓。
+- **9 个 goal 是 `memo` 的**（`scene/Goals.tsx`）：`Goals` 订阅了 7 个 store 切片，
+  任一个变都会重算 9 个 goal 的 props → memo 之后只有**真变了的那几个**会重渲染。
+  ⚠️ 空栈要用模块级的 `EMPTY_STACK`（`stacks[id] ?? []` 每次都造新数组 → memo 白做）。
 
 ## 应用采用的规则
 
@@ -200,19 +249,24 @@ CAD 导出的 glb **既没有材质也没有 UV** → 颜色、贴图、光照�
 - **调色板 = 4 种 pin + 正反 2 个 cup**（`CUP_VARIANTS`）。cup 的朝向决定用哪一半罩住谁，
   所以是两个独立选项，**不受「翻转 pin」开关影响**（那个开关只对调 pin 的上下两半）。
 - **三种放法**（都守同一套叠放规则，非法一律拒绝 + 弹提示）：
-  1. **拖**：左边的得分物拖到场上的任意 goal；**场上的散件要进 goal 也得拖**。
+  1. **拖**：左边的得分物拖到场上的任意 goal；场上的散件也能拖进 goal 的摞。
   2. **先选 goal 再选件**：先点中一个 goal（3D 里高亮：地面双环 + 一柱光 + **摞顶的落点环**），
      再**单击**左边的得分物 → 直接落在它上面。
-  3. **先选件再选 goal**（`store.pending`，「端着」）：**单击**左边的得分物 = 把它端起来
+  3. **先选件再选 goal**（`store.pending`，「端着」）：**单击**一个得分物 = 把它端起来
      （面板里那个件会高亮，左边出现提示），接着点场上的一个 goal → 放上去。
      合法落点的 goal 会亮**绿环**（`Goals.tsx` 的 `pendingOk`），不用拖也知道能放哪。
      非法会拒绝并弹提示，件还端着（可以换个 goal 再点）。
      点空白处 / 按 Esc = 把手里的件放下（取消）。
-- ★ **场上的得分物不会被「端着」**：点它只是**选中**；再点 goal 的优先级是「**选中那个 goal**」，
-  不会把件放上去（`LooseItems.tsx` 里刻意不 `setPending`）。要把场上的件放进 goal → 拖。
-- **「端着」的件**（`store.pending`）：`{item, variantId?}`
-  · 面板的「翻转 pin」开关会跟着重建手里那个件
-  · 一次成功的 `placeItem` 会清掉它
+- ★ **「端着」的件有两种来源**：左侧面板的件、**场上的散件**（摆场摆出来的那些也一样）——
+  单击场上的散件 = 把它端起来（再点一次 = 放下），跟面板上的件完全一样。
+- ★ **点 goal 的第一反应是「放上去」，不是「选中 goal」**（`store.placePending`）：
+  手里端着东西时，点 goal（**包括摞上那几件**）→ 把它叠在摞顶；goal 上已经有东西也一样放。
+  只有**没端着东西**时，点 goal 才是「选中它」。
+  摞里的件**不端起来**（点它只是选中它和它所在的 goal；要挪位置请拖）。
+- **「端着」的件**（`store.pending`）：`{item, variantId?, looseId?}`
+  · `variantId` = 来自左侧面板（面板的「翻转 pin」开关会跟着重建手里那个件）
+  · `looseId` = 来自场上的散件（放上 goal 之后它从散件列表里删掉）
+  · 一次成功的 `placeItem` 会清掉它；被拆掉的件也会把手里的清空
 - **选中的 goal 要一眼看得出来**：CAD 路径下 goal 的材质是不变的（没有程序化几何可改 emissive），
   所以高亮靠 `Goals.tsx` 里叠加的环和光柱。
 - **区域染色**：每个区域按它那个 toggle 的状态染色，边界用真实几何
@@ -248,6 +302,22 @@ CAD 导出的 glb **既没有材质也没有 UV** → 颜色、贴图、光照�
 
 ## 硬约定（照做就行，别改回去）
 
+- **别用 `transmission`**：场景里只要有一个 `transmission > 0` 的材质，three.js 每帧就把
+  整个场景**额外渲染一遍** → draw call 翻倍。透明件用「普通 transparent + clearcoat +
+  环境反射」，双面透明还要加 `forceSinglePass: true`（否则默认画两遍）。
+- **材质一律共享**（`scene/materials.ts` 的 `shared()` / `halfMaterial()`）：
+  摆场后 455 个 mesh，共享前是 437 份材质。
+  ⚠️ 共享的代价：不能再单独改某个 mesh 的材质属性（会串到所有同类的件上）。
+- **别用 React state 订阅「拖拽中」**（`useApp((s) => s.dragging)`）：
+  订阅它 = `App` 重渲染 → `<Canvas>` 重渲染 → R3F 的**整棵树**重渲染
+  （一次拖拽开始 80 ms，每个 3D 组件都白渲染一遍）。
+  要知道拖拽态，就 `useApp.subscribe()`（不进 React）或者在场景里用
+  **叶子组件**自己订阅（`FieldScene.tsx` 的 `Controls` 就是这么写的 ✓）。
+- **别在 `map` 出来的列表里插条件子节点**：`{cond && <X/>}` 会在 children 数组里留一个
+  `false` **空洞** → React 只能走慢路径 → 匹配不上没 key 的兄弟 → **每次重渲染都把整份列表
+  重挂一遍**（几百个新 mesh + 新材质，卡十几秒，而且旧 mesh 会漏在场景里）。
+  条件渲染要么放到列表**外面**，要么拆成**独立组件**自己订阅状态
+  （`LooseItems.tsx` 的 `LooseSelectionRing` 就是这么写的 ✓）。
 - **坐标系**：场地 X 东 / Y 北 / Z 上，原点 = 场地中心，毫米。three.js 是 Y-up，
   换算 `toThree(x, y, z) = [x, z, −y]`（绕 X 轴 −90°）。
   - **`toThree()` 必须取满三个分量**：只取前两个会静默丢掉南北方向。

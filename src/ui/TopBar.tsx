@@ -1,5 +1,4 @@
 import { useApp, QUALITY_LABEL } from '@/state/store'
-import { getFieldSpec } from '@/data/fieldSpec'
 import { INITIAL_GOAL_STACKS, INITIAL_LOOSE } from '@/data/presets'
 import { applyView, type ViewPreset } from '@/scene/bridge'
 import type { Quality } from '@/state/store'
@@ -21,7 +20,6 @@ export function TopBar() {
   const flipItem = useApp((s) => s.flipItem)
   const quality = useApp((s) => s.quality)
   const setQuality = useApp((s) => s.setQuality)
-  const spec = getFieldSpec()
 
   return (
     <header className="topbar">
@@ -38,9 +36,6 @@ export function TopBar() {
           </svg>
         </span>
         <span className="brand-main">VEX Override 3D 战术分析</span>
-        <span className="brand-sub">
-          官方 Field CAD · {spec.source} · {spec.buildId}
-        </span>
       </div>
 
       <div className="topbar-actions">

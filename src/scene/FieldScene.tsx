@@ -62,7 +62,6 @@ function BridgeSetup() {
 function Scene({ onError }: { onError?: (msg: string) => void }) {
   const spec = getFieldSpec()
   const selectGoal = useApp((s) => s.selectGoal)
-  const dragging = useApp((s) => s.dragging)
   const quality = useApp((s) => s.quality)
   const downPos = useRef<{ x: number; y: number } | null>(null)
   const shadows = quality !== 'low'
@@ -129,20 +128,35 @@ function Scene({ onError }: { onError?: (msg: string) => void }) {
         <meshBasicMaterial visible={false} />
       </mesh>
 
-      <OrbitControls
-        ref={(c) => {
-          if (c) sceneBridge.controls = c as unknown as typeof sceneBridge.controls
-        }}
-        enabled={!dragging}
-        enableDamping
-        dampingFactor={0.08}
-        minDistance={300}
-        maxDistance={9000}
-        maxPolarAngle={Math.PI / 2.05}
-        target={[0, 0, 0]}
-        makeDefault
-      />
+      <Controls />
     </>
+  )
+}
+
+/**
+ * 相机控制 + 拖拽时锁住。
+ *
+ * ★ **单独一个组件，自己订阅 `dragging`**：
+ *   在 `Scene` 里订阅会让整个 `<Canvas>` 重渲染 → R3F 的**整棵树**跟着重渲染
+ *   （一次拖拽开始要多花 80 ms，每个 3D 组件都白渲染一遍）✗
+ *   拆出来之后，拖拽态一变只有这一小块重渲染 ✓
+ */
+function Controls() {
+  const dragging = useApp((s) => s.dragging)
+  return (
+    <OrbitControls
+      ref={(c) => {
+        if (c) sceneBridge.controls = c as unknown as typeof sceneBridge.controls
+      }}
+      enabled={!dragging}
+      enableDamping
+      dampingFactor={0.08}
+      minDistance={300}
+      maxDistance={9000}
+      maxPolarAngle={Math.PI / 2.05}
+      target={[0, 0, 0]}
+      makeDefault
+    />
   )
 }
 

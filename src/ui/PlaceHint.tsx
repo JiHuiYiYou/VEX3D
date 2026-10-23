@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '@/state/store'
+import { GOAL_BY_ID, goalName } from '@/data/fieldSpec'
 
 /**
  * 非法叠放被拒绝时的提示条。
@@ -22,11 +23,13 @@ export function PlaceHint() {
   }, [placeError])
 
   if (!placeError || !visible) return null
+  const goal = GOAL_BY_ID[placeError.goalId]
   return (
     <div className="place-hint">
       <span className="place-hint-icon" aria-hidden="true">
         !
       </span>
+      {goal ? `放不到「${goalName(goal)}」上：` : ''}
       {placeError.reason}
     </div>
   )

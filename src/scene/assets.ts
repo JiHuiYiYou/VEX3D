@@ -302,19 +302,35 @@ export function useGoalAsset(
   return asset
 }
 
-/** 载入某个半体的 CAD 几何（约定：翻边在原点，尖端朝 -Y） */
+/**
+ * 载入某个半体的 CAD 几何（约定：翻边在原点，尖端朝 -Y）。
+ *
+ * ★ **同一个颜色只 bake 一次**（结果缓存起来给所有实例共用）：
+ *   `bake()` 是**克隆**几何的 —— 不缓存的话，每个 `HalfMesh` 组件都会拿到
+ *   一份自己的拷贝（摆场一次就是 114 个散件 × 2 半体 = 228 份），
+ *   几百个 GPU buffer 传上去，换个选中状态就卡住好几秒 ✗
+ *   （three.js 里共用一份 BufferGeometry 是常规做法，R3F 也不会去 dispose
+ *    作为 prop 传下去的几何 ✓）。
+ */
+const halfGeoCache = new Map<string, Promise<THREE.BufferGeometry | null>>()
+
 export function loadHalfGeometry(color: string): Promise<THREE.BufferGeometry | null> {
   const url = HALF_FILES[color]
   if (!url) return Promise.resolve(null)
-  return loadGlb(url).then((root) => {
-    if (!root) return null
-    const mesh = firstMesh(root)
-    if (!mesh || !isGeometrySane(mesh)) {
-      console.warn(`[assets] ${url} 的索引缓冲损坏，不画这个件`)
-      return null
-    }
-    return bake(root)
-  })
+  let p = halfGeoCache.get(color)
+  if (!p) {
+    p = loadGlb(url).then((root) => {
+      if (!root) return null
+      const mesh = firstMesh(root)
+      if (!mesh || !isGeometrySane(mesh)) {
+        console.warn(`[assets] ${url} 的索引缓冲损坏，不画这个件`)
+        return null
+      }
+      return bake(root)
+    })
+    halfGeoCache.set(color, p)
+  }
+  return p
 }
 
 /** React hook：异步拿一个 glb 里的几何 */

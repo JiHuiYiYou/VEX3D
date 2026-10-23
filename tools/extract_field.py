@@ -32,6 +32,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import field_analysis as fa  # noqa: E402
+import decimate  # noqa: E402
 import gltfwriter  # noqa: E402
 import steplib  # noqa: E402
 import tessellate  # noqa: E402
@@ -48,6 +49,67 @@ LOG = steplib.plan_log
 DEFL_GOAL = 0.5
 DEFL_HALF = 0.3
 ANG = 0.5
+
+# ---------------------------------------------------------------------------
+# 减面（QEM 边塌缩）预算，单位 mm
+#
+# 为什么光调 deflection 没用
+# ------------------------
+# CAD 里的得分物半体是**模出来的**零件：742 个面（pin）/ 583 个面（cup），
+# 其中将近一半的面积不到 5 mm²（模出来的圆角、凸字、筋、倒角）。OCCT 是
+# **逐面**三角化的，每个面至少两个三角形，所以一个半体就是 9000~12000 个
+# 三角形。这不是容差给太细 —— 实测把 deflection 从 0.3 mm 放宽到 2.0 mm，
+# 三角形只从 9041 掉到 7875（省 13%），因为**决定三角形数的是面的个数**。
+#
+# 真正的减面靠 tools/decimate.py 的二次误差（QEM）边塌缩：把网格简化到
+# 误差上限以内。简化后的网格**仍然是 CAD 的形状**（还是 CAD 的面，只是被
+# 近似了），没有手搓任何几何；误差上限就是下面的毫米数，量法见
+# tools/probe_decimate.py。
+#
+# 预算怎么定的：让简化后的网格**跟现在导出的网格一样准**（跟一份很细的
+# 参考网格比，最大偏差不高于现在这一份），这样观感不可能变差。
+#   半体：Ø80 mm，整个场地 3.66 m，屏幕上就十几像素 → 0.05 mm
+#   goal：Ø162 mm，是看得见的大件 → 放宽
+# ---------------------------------------------------------------------------
+SIMPLIFY = {
+    "half": 0.05,
+    "goal": 0.05,
+    "field": 0.10,       # 场地本体（地砖/围栏/角柱）：见报告
+}
+
+# 减面后的**硬上限**：简化出来的网格跟原网格的最大偏差超过这个值就放弃
+# 简化、原样保留。QEM 对「又长又薄」的零件（比如横贯整个场地的胶带）
+# 会把整条带子塌成几个大三角形 —— 误差会爆到几百毫米，这个上限就是
+# 兜底。实测：胶带简化后偏差 1782 mm → 被挡下，原样保留 ✓
+SIMPLIFY_MAX_DEV = 2.0
+
+# 同一个零件的日志只打一次（field 里同一个零件有几十个实例）
+_logged = set()
+
+
+def simplify_mesh(v, n, t, budget, label):
+    """按误差预算简化一个网格；budget 为 None 时原样返回。
+
+    简化完还要量一下实际偏差 —— 超过 ``SIMPLIFY_MAX_DEV`` 就撤销。
+    """
+    if not budget or len(t) == 0:
+        return v, n, t
+    v2, n2, t2 = decimate.simplify(v, n, t, max_error=budget, target_tris=1)
+    if len(t2) >= len(t):
+        return v, n, t
+    dmax = decimate.measure_deviation(v, v2, t2, sample=300)[0]
+    if dmax > SIMPLIFY_MAX_DEV:
+        if label not in _logged:
+            _logged.add(label)
+            LOG(f"    {label}: 放弃简化（偏差 {dmax:.1f} mm > 上限 "
+                f"{SIMPLIFY_MAX_DEV} mm）")
+        return v, n, t
+    if label not in _logged:
+        _logged.add(label)
+        LOG(f"    {label}: {len(t)} -> {len(t2)} tris "
+            f"(QEM 误差上限 {budget} mm, 实测最大偏差 {dmax:.2f} mm)")
+    return v2, n2, t2
+
 
 # ---------------------------------------------------------------------------
 # field.glb content profile
@@ -1129,6 +1191,10 @@ def export_assets(model: Model, frame: Frame, goal_rows, halves, toggles):
                 v, n, t = steplib.mesh_at(model, leaf["proto"], defl, dang)
                 if len(t) == 0:
                     continue
+                # 减面要**逐实例**做（mat / tape 会把几十个实例并进一个
+                # group，合并之后再简化会把不同位置的零件塌到一起）
+                v, n, t = simplify_mesh(v, n, t, SIMPLIFY["field"],
+                                        f"field {name}")
                 # bake straight into the normalised field frame; the node
                 # transforms stay identity so the web app can bake the
                 # subtree without applying any transform twice
@@ -1230,6 +1296,8 @@ def export_assets(model: Model, frame: Frame, goal_rows, halves, toggles):
         v, n, t = steplib.mesh_at(model, h["index"], DEFL_HALF, ANG)
         if len(t) == 0:
             continue
+        # 减面：CAD 的半体面太多，逐面三角化出来 9000~12000 个三角形
+        v, n, t = simplify_mesh(v, n, t, SIMPLIFY["half"], f"half_{colour}")
         v, n, t = tessellate.transform_mesh(v, n, t, h["exportMatrix"])
         g = gltfwriter.Group(colour, v, n, t)
         out[f"half_{colour}.glb"] = gltfwriter.write_glb(
@@ -1237,7 +1305,10 @@ def export_assets(model: Model, frame: Frame, goal_rows, halves, toggles):
             roots=[gltfwriter.GNode(colour, group=g)],
             scene_name=f"half_{colour}",
             extra={"units": "millimetres",
-                   "convention": "origin at the wide (base) end, axis +Z"})
+                   "convention": "origin at the wide (base) end, axis +Z"},
+            # 减面后的网格是「每个面一套顶点」，按 (位置, 法向) 焊一下：
+            # 法向一样的顶点合并，硬边不受影响，顶点数从 3×三角形数降下来
+            weld_mode="pos_normal")
 
     # ---- goal variants -------------------------------------------------
     for row in goal_rows:
@@ -1267,6 +1338,11 @@ def export_assets(model: Model, frame: Frame, goal_rows, halves, toggles):
                 v, n, t = steplib.mesh_at(model, leaf["proto"], DEFL_GOAL, ANG)
                 if len(t) == 0:
                     continue
+                # 减面要**逐实例**做：同一个 part 的几个实例（角柱、腿、
+                # AprilTag）最后会并进同一个 group，合并之后再简化会把
+                # 不同位置的零件塌到一起。
+                v, n, t = simplify_mesh(v, n, t, SIMPLIFY["goal"],
+                                        f"goal {part_name}")
                 # bake the part into the goal's own frame, base centre at the
                 # origin; the node itself carries no transform
                 M = Mshift @ (Mi @ model.mat(leaf))
@@ -1287,7 +1363,8 @@ def export_assets(model: Model, frame: Frame, goal_rows, halves, toggles):
             roots=[goal_node], scene_name=variant,
             extra={"units": "millimetres",
                    "convention": "origin at the goal base centre, axis +Z",
-                   "parts": sorted(gmap.keys())})
+                   "parts": sorted(gmap.keys())},
+            weld_mode="pos_normal")
     out["_parts"] = parts_map
     return out
 

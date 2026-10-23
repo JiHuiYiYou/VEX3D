@@ -13,8 +13,6 @@ export const sceneBridge = {
   domElement: null as HTMLElement | null,
   /** 每个 Goal 的放置目标（不可见的圆柱） */
   dropTargets: [] as THREE.Object3D[],
-  /** 9 个 Goal 的实体网格（拾取时一起参与，用户指哪就打哪） */
-  goalMeshes: [] as THREE.Object3D[],
   raycaster: new THREE.Raycaster(),
   pointer: new THREE.Vector2(),
   /** frameloop="demand" 时需要主动请求下一帧 */
@@ -112,10 +110,8 @@ export function pickDropTarget(clientX: number, clientY: number): THREE.Object3D
   pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
   pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
   raycaster.setFromCamera(pointer, camera)
-  const hits = raycaster.intersectObjects(
-    [...sceneBridge.goalMeshes, ...sceneBridge.dropTargets],
-    false,
-  )
+  // 直接传数组（`intersectObjects` 不会改它）→ 每次 pointermove 少造一个数组
+  const hits = raycaster.intersectObjects(sceneBridge.dropTargets, false)
   return hits.length ? hits[0].object : null
 }
 

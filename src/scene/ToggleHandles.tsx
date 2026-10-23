@@ -1,5 +1,6 @@
 import { useApp } from '@/state/store'
 import { getFieldSpec, toThree } from '@/data/fieldSpec'
+import { pickMaterial } from './materials'
 
 /**
  * 围栏上 4 个 toggle 的**点击代理**（隐形）+ 选中高亮。
@@ -25,16 +26,19 @@ export function ToggleHandles() {
         const selected = selectedToggleId === t.id
         return (
           <group key={t.id} position={[x, y, z]} rotation={[0, t.rotationZ, 0]}>
-            {/* 点击代理 */}
+            {/* 点击代理：`visible={false}` —— 不进渲染（省 4 个 draw call），
+                但**照样点得中**：three.js 的 Raycaster 不看 visible，
+                R3F 也不筛（R3F 只把「带事件处理的对象」放进射线列表）✓ */}
             <mesh
               onPointerDown={(e) => {
                 e.stopPropagation()
                 selectToggle(t.id)
               }}
               userData={{ kind: 'toggle', toggleId: t.id }}
+              material={pickMaterial()}
+              visible={false}
             >
               <boxGeometry args={[len + 60, h + 70, w + 110]} />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
             {/* 选中高亮：把真身的位置画一圈亮边 */}
             {selected && (

@@ -12,6 +12,7 @@ tools/
   steplib.py          STEP/XCAF reading, tree walking, cache I/O, measurement
   field_analysis.py   the field-frame solver, goal/half/toggle measurement
   tessellate.py       OCCT shape -> numpy triangle soup
+  decimate.py         QEM edge-collapse decimation (the scoring-object halves)
   gltfwriter.py       minimal glTF 2.0 / GLB writer
   raw_tree.py         independent (non-OCCT) STEP parser, used as a cross-check
   raw_world.py        resolves the assembly with the raw parser only
@@ -19,9 +20,18 @@ tools/
 
   # --- not part of the pipeline: browser-side checks (need the dev server) ---
   verify_ui.py        Playwright end-to-end checks (stacking rules, scoring, trash…)
+  perf_ui.py          performance baseline (draw calls / triangles / frame time)
   shot_stack.py       close-up screenshot of a Pin/Cup nest, for eyeballing
   shots.py            screenshots after the CAD assets have finished loading
   test_scoring.ts     scoring-engine regression tests (`npm test`)
+
+  # --- probes: the measurements behind the decimation budget ---
+  probe_tess.py       how many triangles a half costs, and why deflection won't help
+  probe_decimate.py   triangles vs. error budget (incl. silhouette error) per half
+  probe_dev.py        resolution vs. error table (reference mesh vs. coarser one)
+  probe_scene.py      where the triangles go in the running app
+  shot_tess.py        before/after close-up screenshots of the decimated halves
+  compare_shots.py    pixel-diff two screenshots (before vs. after decimation)
 ```
 
 ## Running

@@ -39,15 +39,23 @@ export interface LooseItem {
 export type Quality = 'high' | 'medium' | 'low'
 
 /**
- * 「待放置的件」—— 从左侧面板拿一个件、接着点 goal 就放上去（不用拖）。
+ * 「待放置的件」—— 拿一个件、接着点 goal 就放上去（不用拖）。
  *
- * ⚠️ 只有**面板上的件**会「端着」；场上的得分物点 goal 的优先级是「选中那个 goal」，
- *    要把场上的件放进 goal 请直接拖（`LooseItems.tsx` 里刻意不 setPending）。
+ * 两种来源：
+ *  · **左侧面板**（有 `variantId`）：点一下面板上的件 = 把它端起来
+ *  · **场上的散件**（有 `looseId`）：点一下场上的件 = 把它端起来（再点一次 = 放下）
+ *
+ * ⚠️ 摞里的件**不端起来**（点它只是选中它和它所在的 goal；要挪位置请拖）。
+ *
+ * ★ 只要手里端着东西，点 goal 的第一反应就是**把它放上去**（叠在摞顶），
+ *   而不是「选中那个 goal」—— 见 `placePending`。
  */
 export interface PendingItem {
   item: StackItem
   /** 面板来源：variantId（翻转开关变了要跟着重建） */
   variantId?: string
+  /** 场上散件来源：放上 goal 之后要把这个散件从场上删掉 */
+  looseId?: string
 }
 
 export const QUALITY_LABEL: Record<Quality, string> = {
@@ -110,6 +118,13 @@ export interface AppState {
   selectItem: (id: string | null) => void
   /** 「端着」一个件，等着点 goal 放上去（null = 不端了） */
   setPending: (p: PendingItem | null) => void
+  /**
+   * 把「端着的件」放进某个 goal —— **点 goal 的第一反应就是这个**。
+   *
+   * · 合法 → 放上去（叠在摞顶），清掉「端着」的状态；场上散件会从场上删掉。
+   * · 非法 → 拒绝并写下 placeError（UI 弹提示），**件还端着** → 换个 goal 再点。
+   */
+  placePending: (goalId: string) => boolean
   /** 设置赛局结束时中场的机器人数量 */
   setMidfieldCounts: (red: number, blue: number) => void
   togglePaletteFlip: () => void
@@ -248,6 +263,26 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   /**
+   * 把「端着的件」放进某个 goal。
+   *
+   * ★ **优先级**：手里端着东西时，点 goal 的第一反应是**放上去**（叠在摞顶），
+   *   不是「选中这个 goal」。goal 上已经有东西也一样放 —— 摞顶是什么就叠什么。
+   *
+   * 非法叠放（pin 叠 pin、cup 叠 cup…）会被拒绝并弹提示，**件还端着**，
+   * 换个 goal 再点就行 ✓。
+   */
+  placePending: (goalId) => {
+    const s = get()
+    const p = s.pending
+    if (!p) return false
+    const ok = s.placeItem(goalId, p.item)
+    if (!ok) return false
+    // 场上散件被放进了 goal → 从散件列表里删掉（跟拖拽那条路一样）
+    if (p.looseId) get().removeLoose(p.looseId)
+    return true
+  },
+
+  /**
    * 拆掉一件 → **它上面的所有件也一并拆掉**。
    *
    * 物理上就是这样：得分物不能悬空，把底下那个抽走，上面的 Cup / Pin 就都掉了。
@@ -266,6 +301,8 @@ export const useApp = create<AppState>((set, get) => ({
       return {
         stacks: { ...s.stacks, [goalId]: kept },
         selectedItemId: selIdx >= idx ? null : s.selectedItemId,
+        // 手里端着的正好是它 → 手里空了（不然会把它又放回去）
+        pending: s.pending?.item.id === itemId ? null : s.pending,
       }
     }),
 
@@ -321,7 +358,12 @@ export const useApp = create<AppState>((set, get) => ({
       loose: s.loose.map((it) => (it.id === id ? { ...it, x, y } : it)),
     })),
 
-  removeLoose: (id) => set((s) => ({ loose: s.loose.filter((it) => it.id !== id) })),
+  removeLoose: (id) =>
+    set((s) => ({
+      loose: s.loose.filter((it) => it.id !== id),
+      // 手里端着的正好是它 → 手里空了
+      pending: s.pending?.looseId === id ? null : s.pending,
+    })),
 
   /** 一键摆成官方开局的样子（= 重置 + 灌预设） */
   applySetup: (setup) =>

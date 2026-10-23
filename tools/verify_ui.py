@@ -48,6 +48,10 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not args.headed, args=LAUNCH_ARGS)
         page = browser.new_page(viewport={"width": 1280, "height": 760})
+        # 无头环境走的是 SwiftShader 软件渲染：摆场之后 400+ 个 mesh，
+        # **画一帧要 10 秒上下**。默认 30 s 的动作超时会莫名其妙地炸，
+        # 所以这里放宽（真机上有 GPU，一帧几毫秒，用不着等）。
+        page.set_default_timeout(120000)
 
         console_errors = []
         page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
@@ -83,7 +87,7 @@ def main():
         stale = [w for w in ("桩", "端子", "象限") if w in body_text]
         check("页面上没有旧词（桩/端子/象限）", not stale, f"还剩：{stale}")
 
-        page.screenshot(timeout=180000, path=os.path.join(SHOTS, "01-overview.png"))
+        page.screenshot(timeout=300000, path=os.path.join(SHOTS, "01-overview.png"))
 
         # ── 2b. 俯视图（用来和真实场地照片对表）─────────────
         page.evaluate(
@@ -99,7 +103,7 @@ def main():
             }"""
         )
         time.sleep(1.0)
-        page.screenshot(timeout=180000, path=os.path.join(SHOTS, "01b-topdown.png"))
+        page.screenshot(timeout=300000, path=os.path.join(SHOTS, "01b-topdown.png"))
         # 视角复位
         page.evaluate(
             """() => {
@@ -161,7 +165,7 @@ def main():
                       f"selectedToggleId={sel_toggle}")
                 check("左栏显示三个颜色（红/蓝/黄）",
                       page.locator(".toggle-color").count() == 3)
-                page.screenshot(timeout=180000,
+                page.screenshot(timeout=300000,
                                path=os.path.join(SHOTS, "02b-toggle.png"))
 
                 # 点「红」→ 只有这一个 toggle 变
@@ -226,7 +230,7 @@ def main():
         check("有「翻转 pin」按钮", page.locator(".flip-btn").count() == 1)
 
         if found:
-            page.screenshot(timeout=180000, path=os.path.join(SHOTS, "02-palette.png"))
+            page.screenshot(timeout=300000, path=os.path.join(SHOTS, "02-palette.png"))
 
             # ── 4. 翻转按钮 ───────────────────────────────────
             before = page.locator(".palette-item svg").first.inner_html()
@@ -287,7 +291,7 @@ def main():
                   bool(ghost) and abs(ghost["dx"]) < 3 and abs(ghost["dz"]) < 3, str(ghost))
             check("空 goal 上放 cup：落点被标记为不合法",
                   bool(dt) and dt.get("legal") is False, str(dt))
-            page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04b-illegal-drop.png"))
+            page.screenshot(timeout=300000, path=os.path.join(SHOTS, "04b-illegal-drop.png"))
             page.mouse.up()
             time.sleep(0.5)
             n_rej = stack_len()
@@ -307,7 +311,7 @@ def main():
             dots = page.evaluate("() => document.querySelectorAll('.half-row .dot').length")
             check("计分板一行一个 pin（两个色点 = 上下两半）",
                   placed == 1 and dots == 2, f"{placed} 行 / {dots} 个色点")
-            page.screenshot(timeout=180000, path=os.path.join(SHOTS, "03-placed.png"))
+            page.screenshot(timeout=300000, path=os.path.join(SHOTS, "03-placed.png"))
 
             # 非法②：Pin 叠到 Pin 上 → 应被拒绝
             drag_to(page.locator(".palette-item").first, found[0], found[1], hold=True)
@@ -322,7 +326,7 @@ def main():
             drag_to(page.locator(".palette-item").nth(4), found[0], found[1])
             n2 = stack_len()
             check("再放一个件后件数增加（叠层）", n2 == n1 + 1, f"{n1} → {n2}")
-            page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04-stacked.png"))
+            page.screenshot(timeout=300000, path=os.path.join(SHOTS, "04-stacked.png"))
 
             # 合法③：Pin 叠到 Cup 上（Pin 只能放 Cup 上）
             drag_to(page.locator(".palette-item").first, found[0], found[1])
@@ -345,7 +349,7 @@ def main():
             )
             check("嵌套落点正确（cup 坐 pin 的腰 +82.5 / pin 坐 cup 的上沿 +82.0）",
                   ok_nest, f"baseY = {layout}")
-            page.screenshot(timeout=180000, path=os.path.join(SHOTS, "04c-nested.png"))
+            page.screenshot(timeout=300000, path=os.path.join(SHOTS, "04c-nested.png"))
 
         # ── 7. 切 Toggle 会改分（现在是从左侧面板切）────────
         # 先在中场放一个黄色 pin：它归「中场机器人数多的一方」，
@@ -427,13 +431,13 @@ def main():
                     and mid_glow["binInline"] == "0",
                     str(mid_glow),
                 )
-                page.screenshot(timeout=180000, path=os.path.join(SHOTS, "05a-dragging.png"))
+                page.screenshot(timeout=300000, path=os.path.join(SHOTS, "05a-dragging.png"))
                 # 再拖到边缘
                 page.mouse.move(edge_x, item_pt[1], steps=10)
                 time.sleep(0.3)
                 # 先截图：会强制 paint，把淡入过渡推进（软渲染只有 ~5fps，
                 # 不先 paint 的话 getComputedStyle 读到的还是过渡起点）
-                page.screenshot(timeout=180000, path=os.path.join(SHOTS, "05-trash.png"))
+                page.screenshot(timeout=300000, path=os.path.join(SHOTS, "05-trash.png"))
                 trash_info = page.evaluate(
                     """() => {
                       const b = document.querySelector('.trash-zone');
@@ -704,9 +708,9 @@ def main():
         check("摆场：16 根侧躺的 pin + 16 根插在 cup 里的 pin",
               setup["lying"] == 16 and setup["nested"] == 16,
               f"躺 {setup['lying']} / 插 {setup['nested']}")
-        page.screenshot(timeout=180000, path=os.path.join(SHOTS, "07-setup.png"))
+        page.screenshot(timeout=300000, path=os.path.join(SHOTS, "07-setup.png"))
 
-        # 单击散件 = 只是选中：不能把它挪走，更不能删掉
+        # 单击散件 = 选中（并端起来）：不能把它挪走，更不能删掉
         # （以前单击会被当成「丢到地面」，落点用射线打水平面算 → 件飞到天边 ✗）
         click_cands = page.evaluate(
             """() => {
@@ -756,7 +760,7 @@ def main():
                   and after_click["y"] == click_res["y"],
                   f"{click_res['id']} @({click_res['x']:.0f},{click_res['y']:.0f}) → {after_click}")
 
-        # 场上的得分物：点它只是「选中」；再点 goal 优先「选中 goal」，不会把件放上去
+        # 场上的得分物：点它 = 把它端起来 → 再点 goal = 放上去（**优先于**「选中 goal」）
         pick = page.evaluate(
             """() => {
               const st = window.__vex3d.getState();
@@ -798,12 +802,17 @@ def main():
             }"""
         )
         if pick:
+            # 清掉上一个用例可能留下的「端着的件」，免得串味
+            page.evaluate("() => window.__vex3d.getState().setPending(null)")
+            time.sleep(0.2)
             page.mouse.click(pick["pt"][0], pick["pt"][1])
             time.sleep(0.5)
             armed = page.evaluate(
-                "() => { const s = window.__vex3d.getState(); return s.pending ? 'armed' : null }"
+                """() => { const s = window.__vex3d.getState();
+                   return s.pending ? { kind: s.pending.item.kind, loose: !!s.pending.looseId } : null }"""
             )
-            check("点场上的得分物只是选中，不会被「端起来」", armed is None, str(armed))
+            check("点场上的得分物 = 把它端起来（跟面板上的件一样）",
+                  armed is not None and armed["kind"] == "pin" and armed["loose"], str(armed))
             page.mouse.click(pick["gpt"][0], pick["gpt"][1])
             time.sleep(0.7)
             placed = page.evaluate(
@@ -812,20 +821,21 @@ def main():
                            goal: s.selectedGoalId, pending: !!s.pending } }""",
                 pick["gid"],
             )
-            check("点 goal 优先「选中 goal」，不会把场上的件放上去",
-                  placed["g"] == 0 and placed["n"] == pick["n"]
-                  and placed["goal"] == pick["gid"],
+            check("端着的场上得分物点一下 goal 就放上去（优先于「选中 goal」）",
+                  placed["g"] == 1 and placed["n"] == pick["n"] - 1
+                  and placed["goal"] == pick["gid"] and not placed["pending"],
                   f"{pick['gid']}: {pick['n']} → {placed}")
 
-            # 面板上的件：点一下 = 端起来 → 再点一个空 goal → 放上去（不用拖）
+            # ★ goal 上**已经有**得分物时，端着的件照样放上去（叠在摞顶）
+            #   面板上的 cup（cup 能放在 pin 上）
             page.evaluate("() => window.__vex3d.getState().selectGoal(null)")
             time.sleep(0.3)
-            page.locator(".palette-item").first.click()
+            page.locator(".palette-item").nth(4).click()   # 第 5 个 = 第一个 cup
             time.sleep(0.4)
             armed2 = page.evaluate(
                 "() => { const s = window.__vex3d.getState(); return s.pending ? s.pending.item.kind : null }"
             )
-            check("点面板上的件 = 把它端起来（等着点 goal 放上去）", armed2 == "pin", str(armed2))
+            check("点面板上的件 = 把它端起来（等着点 goal 放上去）", armed2 == "cup", str(armed2))
             page.mouse.click(pick["gpt"][0], pick["gpt"][1])
             time.sleep(0.7)
             placed2 = page.evaluate(
@@ -833,8 +843,8 @@ def main():
                   return { g: (s.stacks[gid]||[]).length, pending: !!s.pending } }""",
                 pick["gid"],
             )
-            check("端着的件点一下 goal 就放上去（不用拖）",
-                  placed2["g"] == 1 and not placed2["pending"], f"{pick['gid']} → {placed2}")
+            check("goal 上已经有得分物时，端着的件照样放上去（叠在摞顶）",
+                  placed2["g"] == 2 and not placed2["pending"], f"{pick['gid']} → {placed2}")
 
         # 散件能删：拖一个到画布边缘
         loose_before = page.evaluate("() => window.__vex3d.getState().loose.length")
@@ -909,7 +919,7 @@ def main():
         page.mouse.move(cx + 180, cy + 60, steps=12)
         page.mouse.up()
         time.sleep(0.8)
-        page.screenshot(timeout=180000, path=os.path.join(SHOTS, "06-rotated.png"))
+        page.screenshot(timeout=300000, path=os.path.join(SHOTS, "06-rotated.png"))
 
         # ── 10. 帧率（SwiftShader 软渲染，仅作参考）───────
         fps = page.evaluate(

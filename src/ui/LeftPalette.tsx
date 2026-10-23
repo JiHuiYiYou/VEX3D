@@ -154,6 +154,8 @@ export function LeftPalette() {
             <div className="hint small">
               点场地上的一个 <b>goal</b> 选中它（场上会高亮），
               再<b>单击</b>下面的得分物就能直接放上去；也可以直接拖。
+              <br />
+              <b>单击场上的得分物</b> = 把它端起来，接着点一个 goal 就放上去。
             </div>
           )}
 
@@ -201,8 +203,9 @@ export function LeftPalette() {
           {/* 「端着」一个件：接着点场上的一个 goal 就放上去 */}
           {pending && (
             <div className="hint small pending-hint">
-              已端着：<b>{pendingLabel(pending)}</b> —— 点场上的一个 <b>goal</b> 放上去
-              （再点一次这个件 = 取消，点空白处 / Esc = 放下）。
+              {pending.looseId ? '已端起场上的' : '已端着：'}
+              <b>{pendingLabel(pending)}</b> —— 点场上的一个 <b>goal</b> 放上去
+              （叠在摞顶；再点一次这个件 = 取消，点空白处 / Esc = 放下）。
             </div>
           )}
 
