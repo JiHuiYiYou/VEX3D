@@ -114,6 +114,9 @@ npm run build      # 产物在 dist/
 推 main → CI 自动构建并发布（[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)）。
 纯静态站，没有后端、没有统计、没有 cookie。
 
+> 首次打开要下 ~15 MB（场地的 3D 几何），之后就快了。
+> 比赛现场没网的话，需要做成 PWA 离线用（**还没做**，见下面「还没做的」）。
+
 ## 部署
 
 这是个纯静态站（`dist/` = 一个 HTML + 一个 JS + CSS + 17 MB 的 glb），
@@ -131,6 +134,15 @@ npm run build
 - **验证发布产物**：`tools/verify_ui.py --url "http://127.0.0.1:8000/VEX3D/?quality=low&debug=1"`
   —— 同一套 61 条断言跑在**生产构建**上（`?debug=1` 才会把内部状态挂到 window 上，
   平时不开）。
+
+### 还没做的（想继续做的话）
+
+- **PWA 离线**：manifest + service worker，把 15 MB 资产按需缓存 →
+  比赛现场没网也能用，能「添加到主屏幕」像原生 app 一样打开。
+- **桌面版**：Tauri 打包成 Windows 安装包（~10 MB，含资产、离线、不用开浏览器），
+  适合直接发给队友。
+- **GitHub Release 附件**：把 `dist/` 打成 zip 挂上去，谁要谁下。
+- **自定义域名**：仓库里放个 `CNAME` 再配 DNS 就行。
 
 ## 重新生成 CAD 资产
 
