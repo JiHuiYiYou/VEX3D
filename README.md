@@ -117,6 +117,20 @@ npm run build      # 产物在 dist/
 > 首次打开要下 ~15 MB（场地的 3D 几何），之后就快了。
 > 比赛现场没网的话，需要做成 PWA 离线用（**还没做**，见下面「还没做的」）。
 
+## 离线 / 装到桌面
+
+这个站是 **PWA**：第一次把 15 MB 的几何下完之后，**断网也能用** ——
+比赛现场的 wifi 不靠谱的时候正好需要。
+
+- **Chrome / Edge**：地址栏右边的「安装」图标 → 装成独立窗口的应用；
+  手机上「添加到主屏幕」。
+- **iOS Safari**：分享 → 添加到主屏幕。
+- 装好之后**第二次打开是秒开**（资产都在本地缓存里），**完全断网也照常摆件、算分** ✓
+
+> 自己验一下：`npm run build` 之后
+> `C:/Users/liuzhen/miniconda3/python.exe tools/verify_offline.py`
+> —— 它会真的断网重开，检查摆场 / 摆件 / 计分还能不能用（6 项断言）。
+
 ## 部署
 
 这是个纯静态站（`dist/` = 一个 HTML + 一个 JS + CSS + 17 MB 的 glb），
@@ -137,12 +151,11 @@ npm run build
 
 ### 还没做的（想继续做的话）
 
-- **PWA 离线**：manifest + service worker，把 15 MB 资产按需缓存 →
-  比赛现场没网也能用，能「添加到主屏幕」像原生 app 一样打开。
 - **桌面版**：Tauri 打包成 Windows 安装包（~10 MB，含资产、离线、不用开浏览器），
   适合直接发给队友。
 - **GitHub Release 附件**：把 `dist/` 打成 zip 挂上去，谁要谁下。
 - **自定义域名**：仓库里放个 `CNAME` 再配 DNS 就行。
+- **手机上能用**：现在是三栏桌面布局，窄屏会挤（还没做响应式）。
 
 ## 重新生成 CAD 资产
 
@@ -192,7 +205,9 @@ docs/                 README 用的截图
 | `npm test` | 计分引擎回归测试（Node 直接跑 `.ts`，需要 Node 22.18+ / 24） |
 | `npm run typecheck` | 只做类型检查 |
 | `C:/.../miniconda3/python.exe tools/verify_ui.py` | Playwright 端到端验证（61 项断言 + 截图） |
+| `C:/.../miniconda3/python.exe tools/verify_offline.py` | PWA 离线验证（真的断网重开，检查摆场/摆件/计分） |
 | `C:/.../miniconda3/python.exe tools/perf_ui.py` | 性能基线（draw call / 三角形 / 帧时间 / 交互延迟；要 dev server 起着） |
+| `C:/.../miniconda3/python.exe tools/make_icons.py` | 生成 PWA 图标（manifest / apple-touch-icon） |
 | `C:/.../miniconda3/python.exe tools/shot_stack.py` | 拍一张 Pin/Cup 嵌套特写（肉眼核对用） |
 
 ### 可选：接上 VEX 规则查询 MCP

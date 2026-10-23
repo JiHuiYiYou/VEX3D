@@ -339,6 +339,18 @@ CAD 导出的 glb **既没有材质也没有 UV** → 颜色、贴图、光照�
     CDN（GitHub Pages）支持 Range，`bytes=0-0` 会回 **206 + 1 字节**，
     浏览器可能把这个 206 缓存下来，把紧接着的整取请求变成「只拿到 1 字节」✗。
   - 本地复现：`tools/serve_range.py 8014 dist --flaky=1`（真支持 Range + 会掐断下载）。
+- **Service worker 只在生产构建注册**（`src/main.tsx`）：dev 下注册会把开发中的代码
+  缓存住 —— 改一行代码刷新了还是旧的 ✗。改了 `public/sw.js` 的策略要**把 `CACHE`
+  的版本号 +1**，否则老用户拿到的还是旧缓存。
+  缓存的坑（都踩过）：
+  - 存进 Cache API 之前要**去掉 `content-length` / `content-encoding`** ——
+    浏览器给的 body 是解压后的，长度对不上，Cache API 会直接拒绝写入 ✗
+  - **第一次访问时 SW 还没接管**，那次导航不会被拦截 → 外壳不会进缓存 →
+    断网后打不开。所以页面要在 SW active 之后把「自己用到的 URL」postMessage 给它
+    去缓存（`main.tsx` 的 precache 交接）✓
+  - app 启动前的 11 个 **HEAD** 探针要**从缓存里答**（`checkAssets`），
+    否则离线时会被判成「缺资产」✗
+  - 回归测试：`tools/verify_offline.py`（真的断网重开，6 项断言）
 - **坐标系**：场地 X 东 / Y 北 / Z 上，原点 = 场地中心，毫米。three.js 是 Y-up，
   换算 `toThree(x, y, z) = [x, z, −y]`（绕 X 轴 −90°）。
   - **`toThree()` 必须取满三个分量**：只取前两个会静默丢掉南北方向。
