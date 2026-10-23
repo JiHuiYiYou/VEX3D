@@ -1,6 +1,7 @@
 import { CUP_HEIGHT, GOAL_BY_ID, HALVES, PIN_HEIGHT, toThree } from '@/data/fieldSpec'
 import type { GoalSpec } from '@/data/fieldSpec'
 import type { StackItem } from '@/state/scoring'
+import { DEBUG } from '@/devTools'
 
 /**
  * 堆叠的纯几何计算（3D 场景、拖拽幽灵件、端到端脚本共用一份）。
@@ -153,8 +154,8 @@ export function nextBaseY(
     : top.baseY + NEST_ON_CUP + SEAT_EPS
 }
 
-// 开发模式下暴露给端到端脚本（tools/verify_ui.py 断言嵌套偏移用）
-if (import.meta.env.DEV) {
+// 暴露给端到端脚本（tools/verify_ui.py 断言嵌套偏移用；生产构建要 ?debug=1）
+if (DEBUG) {
   ;(window as unknown as { __stackLayout?: unknown }).__stackLayout = (
     goalId: string,
     stack: StackItem[],

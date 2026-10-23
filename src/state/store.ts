@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { QuadrantId, ToggleState } from '@/data/fieldSpec'
 import { PIN_VARIANTS, CUP_VARIANTS, GOALS } from '@/data/fieldSpec'
 import { checkPlacement } from './scoring'
+import { DEBUG } from '@/devTools'
 import type { StackItem } from './scoring'
 
 export type DragPayload =
@@ -421,8 +422,8 @@ export const useApp = create<AppState>((set, get) => ({
     }),
 }))
 
-// 开发模式下把 store 挂到 window，方便端到端脚本检查内部状态
-if (import.meta.env.DEV) {
+// 把 store 挂到 window，方便端到端脚本检查内部状态（生产构建要 ?debug=1）
+if (DEBUG) {
   ;(window as unknown as { __vex3d?: typeof useApp }).__vex3d = useApp
 }
 

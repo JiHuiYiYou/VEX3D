@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { DEBUG } from '@/devTools'
 
 /**
  * 3D 场景 ↔ DOM 拖拽控制器之间的桥。
@@ -84,8 +85,8 @@ export function stageRect(): DOMRect {
   return new DOMRect(0, 0, window.innerWidth, window.innerHeight)
 }
 
-// 开发模式下暴露出来，方便端到端脚本检查拾取目标
-if (import.meta.env.DEV) {
+// 暴露出来，方便端到端脚本检查拾取目标（生产构建要 ?debug=1，见 devTools.ts）
+if (DEBUG) {
   ;(window as unknown as { __bridge?: typeof sceneBridge }).__bridge = sceneBridge
 }
 

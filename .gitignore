@@ -8,8 +8,16 @@ tsconfig.tsbuildinfo
 # 官方场地 CAD 源文件（126 MB，不入库；见 README「重新生成 CAD 资产」）
 fieldcad/
 
-# 生成的资产（由 tools/extract_field.py 产出，约 20 MB）
-public/assets/
+# ⚠️ `public/assets/` 的忽略规则去掉了 —— 那 17 MB 的 glb **现在入库**：
+#   ① 别人 clone 下来 `npm install && npm run dev` 就能跑，
+#      不用装 cadquery-ocp、不用下 126 MB 的 STEP、不用等 8 分钟的缓存；
+#   ② GitHub Pages 直接就有资产可发（不用在 CI 里重跑管线）。
+#   重新生成资产（tools/extract_field.py）之后记得一起提交。
+#
+# 这两个是管线的副产品，**app 不请求**（只用 field.glb / field.json / goal_* / half_*），
+# 所以不入库（也剔出发布产物）：
+public/assets/field_slim.glb
+public/assets/field_report.json
 
 # Python 管线
 tools/.venv/

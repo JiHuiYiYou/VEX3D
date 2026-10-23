@@ -1,0 +1,4198 @@
+{
+ "buildId": "2026-04-26-3f24b7572d21",
+ "source": "276-9250-000 (2026-04-26).STEP",
+ "fieldSize": 3657.6,
+ "goals": [
+  {
+   "id": "g-n1",
+   "variant": "neutral-short",
+   "position": [
+    -598.06,
+    1196.12,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "top",
+   "alliance": null,
+   "height": 146.53,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 146.03,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Neutral Goal 4"
+  },
+  {
+   "id": "g-n2",
+   "variant": "neutral-short",
+   "position": [
+    -1196.12,
+    598.06,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "left",
+   "alliance": null,
+   "height": 146.53,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 146.03,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Neutral Goal 1"
+  },
+  {
+   "id": "g-n3",
+   "variant": "neutral-short",
+   "position": [
+    1196.12,
+    -598.06,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "right",
+   "alliance": null,
+   "height": 146.53,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 146.03,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Neutral Goal 1"
+  },
+  {
+   "id": "g-n4",
+   "variant": "neutral-short",
+   "position": [
+    598.06,
+    -1196.12,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "bottom",
+   "alliance": null,
+   "height": 146.53,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 146.03,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Neutral Goal 4"
+  },
+  {
+   "id": "g-center",
+   "variant": "neutral-tall",
+   "position": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "midfield",
+   "alliance": null,
+   "height": 222.73,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 222.23,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Neutral Goal 0"
+  },
+  {
+   "id": "g-r1",
+   "variant": "alliance-red",
+   "position": [
+    -1196.12,
+    -598.06,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "left",
+   "alliance": "red",
+   "height": 82.59,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 82.09,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Red 2"
+  },
+  {
+   "id": "g-r2",
+   "variant": "alliance-red",
+   "position": [
+    -598.06,
+    -1196.12,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "bottom",
+   "alliance": "red",
+   "height": 82.59,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 82.09,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Red 3"
+  },
+  {
+   "id": "g-b1",
+   "variant": "alliance-blue",
+   "position": [
+    598.06,
+    1196.12,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "top",
+   "alliance": "blue",
+   "height": 82.59,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 82.09,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Blue 3"
+  },
+  {
+   "id": "g-b2",
+   "variant": "alliance-blue",
+   "position": [
+    1196.12,
+    598.06,
+    0.0
+   ],
+   "rotationY": 0.0,
+   "quadrant": "right",
+   "alliance": "blue",
+   "height": 82.59,
+   "baseRadius": 81.87,
+   "topRadius": 45.03,
+   "socket": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 82.09,
+    "radius": 39.61,
+    "depth": 82.03
+   },
+   "sourceProduct": "276-9250-840_Blue 2"
+  }
+ ],
+ "toggles": [
+  {
+   "id": "top",
+   "position": [
+    -0.0,
+    1817.04,
+    331.56
+   ],
+   "rotationZ": 0.0,
+   "length": 656.2,
+   "width": 51.59,
+   "height": 55.65,
+   "product": "276-9250-023_GREY"
+  },
+  {
+   "id": "right",
+   "position": [
+    1817.04,
+    0.0,
+    331.56
+   ],
+   "rotationZ": 1.5707963267948966,
+   "length": 656.2,
+   "width": 51.59,
+   "height": 55.65,
+   "product": "276-9250-023_GREY"
+  },
+  {
+   "id": "bottom",
+   "position": [
+    -0.0,
+    -1817.04,
+    331.56
+   ],
+   "rotationZ": 0.0,
+   "length": 656.2,
+   "width": 51.59,
+   "height": 55.65,
+   "product": "276-9250-023_GREY"
+  },
+  {
+   "id": "left",
+   "position": [
+    -1817.04,
+    0.0,
+    331.56
+   ],
+   "rotationZ": 1.5707963267948966,
+   "length": 656.2,
+   "width": 51.59,
+   "height": 55.65,
+   "product": "276-9250-023_GREY"
+  }
+ ],
+ "halves": {
+  "pin": {
+   "height": 87.5,
+   "rTop": 17.82,
+   "rBottom": 29.8,
+   "flange": 7.0,
+   "rMax": 40.15
+  },
+  "cup": {
+   "height": 86.0,
+   "rTop": 29.48,
+   "rBottom": 35.8,
+   "flange": 9.34,
+   "rMax": 40.1
+  }
+ },
+ "pinHeight": 165.0,
+ "cupHeight": 164.5,
+ "nestDepth": 10.0,
+ "startObjects": [
+  {
+   "kind": "pin",
+   "halves": [
+    "blue",
+    "red"
+   ],
+   "position": [
+    -598.06,
+    0.0,
+    84.78
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "blue",
+    "red"
+   ],
+   "position": [
+    0.0,
+    -598.06,
+    84.78
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "red",
+    "blue"
+   ],
+   "position": [
+    -0.0,
+    598.06,
+    84.78
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "red",
+    "blue"
+   ],
+   "position": [
+    598.06,
+    -0.0,
+    84.78
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -1743.1,
+    -598.06,
+    84.78
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -1196.12,
+    -1196.12,
+    84.78
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -1196.12,
+    598.06,
+    66.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    2.356194
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    0.0,
+    0.0,
+    142.2
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    2.356194
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -1196.12,
+    1078.6,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.966,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -1313.63,
+    1196.12,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.966,
+    0.0,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    -1196.12,
+    1313.63,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    -0.0,
+    3.141593
+   ],
+   "axis": [
+    0.0,
+    0.966,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    -1078.6,
+    1196.12,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    0.966,
+    -0.0,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -598.06,
+    480.33,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.966,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -715.79,
+    598.06,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.966,
+    0.0,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    -598.06,
+    715.79,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    -0.0,
+    3.141593
+   ],
+   "axis": [
+    0.0,
+    0.966,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    -480.33,
+    598.06,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    0.966,
+    -0.0,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    1078.6,
+    -1196.12,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.966,
+    0.0,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    480.33,
+    -598.06,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.966,
+    0.0,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    1196.12,
+    -1313.63,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    0.0,
+    -0.0
+   ],
+   "axis": [
+    -0.0,
+    -0.966,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    1313.63,
+    -1196.12,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.966,
+    -0.0,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    1196.12,
+    -1078.6,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    0.0,
+    3.141593
+   ],
+   "axis": [
+    0.0,
+    0.966,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    598.06,
+    -715.79,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    0.0,
+    -0.0
+   ],
+   "axis": [
+    -0.0,
+    -0.966,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    715.79,
+    -598.06,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.966,
+    -0.0,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    598.06,
+    -480.33,
+    -23.8
+   ],
+   "rotation": [
+    2.880268,
+    0.0,
+    3.141593
+   ],
+   "axis": [
+    0.0,
+    0.966,
+    0.2584
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -1743.1,
+    598.06,
+    84.78
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -598.06,
+    1743.1,
+    84.78
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -3.141593
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    1743.1,
+    598.06,
+    84.78
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    598.06,
+    -1743.1,
+    84.78
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    598.06,
+    1743.1,
+    84.78
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -0.0
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    1743.1,
+    -598.06,
+    84.78
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -598.06,
+    -1743.1,
+    84.78
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    3.141593
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -598.06,
+    -598.06,
+    84.78
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    598.06,
+    -1196.12,
+    66.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    2.356194
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -598.06,
+    1196.12,
+    66.0
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    2.356194
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    1196.12,
+    -598.06,
+    66.0
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    2.356194
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    598.06,
+    598.06,
+    84.78
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    1196.12,
+    1196.12,
+    84.78
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2250.0,
+    -1200.0,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    -40.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    -120.75,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    -201.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    -281.75,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    -362.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2250.0,
+    1200.0,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2250.0,
+    -1200.0,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    -40.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    -120.75,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    -201.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    -281.75,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    -362.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2250.0,
+    1200.0,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    -2250.0,
+    -0.0,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "yellow"
+   ],
+   "position": [
+    2250.0,
+    0.0,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    40.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    120.75,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    201.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    281.75,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "red"
+   ],
+   "position": [
+    -2350.0,
+    362.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    40.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    120.75,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    201.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    281.75,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "pin",
+   "halves": [
+    "yellow",
+    "blue"
+   ],
+   "position": [
+    2350.0,
+    362.25,
+    -16.0
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -598.06,
+    0.0,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -3.141593
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    0.0,
+    -598.06,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -0.0,
+    598.06,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    598.06,
+    -0.0,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -1743.1,
+    -598.06,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -1196.12,
+    1196.12,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    -3.141593
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -598.06,
+    598.06,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    -3.141593
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    1196.12,
+    -1196.12,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    598.06,
+    -598.06,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -1743.1,
+    598.06,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -598.06,
+    1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    -3.141593
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    1743.1,
+    598.06,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    598.06,
+    -1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    598.06,
+    1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    3.141593
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    1743.1,
+    -598.06,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -598.06,
+    -1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -1196.12,
+    -1196.12,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -3.141593
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -598.06,
+    -598.06,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    -3.141593
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    1196.12,
+    1196.12,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    598.06,
+    598.06,
+    0.03
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -1743.1,
+    -678.26,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -1743.1,
+    -517.86,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -1743.1,
+    678.26,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -1743.1,
+    517.86,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    517.86,
+    1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    3.141593
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    1743.1,
+    -517.86,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -517.86,
+    -1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    678.26,
+    1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    3.141593
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    1743.1,
+    -678.26,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -678.26,
+    -1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -517.86,
+    1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    -3.141593
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    1743.1,
+    517.86,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    517.86,
+    -1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    -678.26,
+    1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    -3.141593
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    1743.1,
+    678.26,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "clear",
+    "gray"
+   ],
+   "position": [
+    678.26,
+    -1743.1,
+    0.03
+   ],
+   "rotation": [
+    1.570796,
+    -0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    -40.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    -120.75,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    -201.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    -281.75,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    -362.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    -40.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    -120.75,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    -201.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    -281.75,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    -362.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    0.0,
+    1.570796
+   ],
+   "axis": [
+    -0.0,
+    0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    40.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    120.75,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    201.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    281.75,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    -2450.0,
+    362.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    40.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    120.75,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    201.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    281.75,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  },
+  {
+   "kind": "cup",
+   "halves": [
+    "gray",
+    "clear"
+   ],
+   "position": [
+    2450.0,
+    362.25,
+    -16.0
+   ],
+   "rotation": [
+    -1.570796,
+    -0.0,
+    -1.570796
+   ],
+   "axis": [
+    -0.0,
+    -0.0,
+    1.0
+   ]
+  }
+ ],
+ "startObjectsNote": "The 63 pins and 56 cups sit in the CAD exactly where they start a match: 37 pins + 36 cups on the field, 20 cups + 26 pins in the red/blue staging areas.  Those numbers match the official VEXcode VR Playground object inventory exactly, and the 21 locations match its GPS table to within 2 mm, so this IS the official opening layout -- not a packing arrangement.  position = [x, y, base height] in the field frame (mm), halves = [lower, upper] by physical height, axis = the piece's axis (lower -> upper) so lying pieces can be drawn correctly.",
+ "parts": {
+  "Tape- Toggle Zones_Diamond Center- Divided Zones": {
+   "name": "Tape- Toggle Zones_Diamond Center- Divided Zones",
+   "node": 0,
+   "mesh": 0,
+   "vertexStart": 280246,
+   "vertexCount": 192,
+   "indexStart": 414921,
+   "indexCount": 384,
+   "triStart": 138307,
+   "triCount": 128,
+   "instances": 0
+  },
+  "Tape- Corner Zone_Red Loader Zone": {
+   "name": "Tape- Corner Zone_Red Loader Zone",
+   "node": 1,
+   "mesh": 1,
+   "vertexStart": 280174,
+   "vertexCount": 72,
+   "indexStart": 414801,
+   "indexCount": 120,
+   "triStart": 138267,
+   "triCount": 40,
+   "instances": 0
+  },
+  "Wall Alliance Stations_PMS 199c - Bright Red": {
+   "name": "Wall Alliance Stations_PMS 199c - Bright Red",
+   "node": 2,
+   "mesh": 2,
+   "vertexStart": 280438,
+   "vertexCount": 48,
+   "indexStart": 415305,
+   "indexCount": 84,
+   "triStart": 138435,
+   "triCount": 28,
+   "instances": 0
+  },
+  "Wall Alliance Stations_PMS 299c - Bright Blue": {
+   "name": "Wall Alliance Stations_PMS 299c - Bright Blue",
+   "node": 3,
+   "mesh": 3,
+   "vertexStart": 280486,
+   "vertexCount": 48,
+   "indexStart": 415389,
+   "indexCount": 84,
+   "triStart": 138463,
+   "triCount": 28,
+   "instances": 0
+  },
+  "Tape- Corner Zone_Blue Loader Zone": {
+   "name": "Tape- Corner Zone_Blue Loader Zone",
+   "node": 4,
+   "mesh": 4,
+   "vertexStart": 280102,
+   "vertexCount": 72,
+   "indexStart": 414681,
+   "indexCount": 120,
+   "triStart": 138227,
+   "triCount": 40,
+   "instances": 0
+  },
+  "SBT0832_276-8016-001": {
+   "name": "SBT0832_276-8016-001",
+   "node": 5,
+   "mesh": 5,
+   "vertexStart": 274054,
+   "vertexCount": 378,
+   "indexStart": 408537,
+   "indexCount": 384,
+   "triStart": 136179,
+   "triCount": 128,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 6,
+     "mesh": 6,
+     "vertexStart": 274432,
+     "vertexCount": 378,
+     "triStart": 136307,
+     "triCount": 128
+    },
+    {
+     "node": 7,
+     "mesh": 7,
+     "vertexStart": 274810,
+     "vertexCount": 378,
+     "triStart": 136435,
+     "triCount": 128
+    },
+    {
+     "node": 8,
+     "mesh": 8,
+     "vertexStart": 275188,
+     "vertexCount": 378,
+     "triStart": 136563,
+     "triCount": 128
+    },
+    {
+     "node": 9,
+     "mesh": 9,
+     "vertexStart": 275566,
+     "vertexCount": 378,
+     "triStart": 136691,
+     "triCount": 128
+    },
+    {
+     "node": 10,
+     "mesh": 10,
+     "vertexStart": 275944,
+     "vertexCount": 378,
+     "triStart": 136819,
+     "triCount": 128
+    },
+    {
+     "node": 11,
+     "mesh": 11,
+     "vertexStart": 276322,
+     "vertexCount": 378,
+     "triStart": 136947,
+     "triCount": 128
+    },
+    {
+     "node": 12,
+     "mesh": 12,
+     "vertexStart": 276700,
+     "vertexCount": 378,
+     "triStart": 137075,
+     "triCount": 128
+    },
+    {
+     "node": 13,
+     "mesh": 13,
+     "vertexStart": 277078,
+     "vertexCount": 378,
+     "triStart": 137203,
+     "triCount": 128
+    },
+    {
+     "node": 14,
+     "mesh": 14,
+     "vertexStart": 277456,
+     "vertexCount": 378,
+     "triStart": 137331,
+     "triCount": 128
+    },
+    {
+     "node": 15,
+     "mesh": 15,
+     "vertexStart": 277834,
+     "vertexCount": 378,
+     "triStart": 137459,
+     "triCount": 128
+    },
+    {
+     "node": 16,
+     "mesh": 16,
+     "vertexStart": 278212,
+     "vertexCount": 378,
+     "triStart": 137587,
+     "triCount": 128
+    },
+    {
+     "node": 17,
+     "mesh": 17,
+     "vertexStart": 278590,
+     "vertexCount": 378,
+     "triStart": 137715,
+     "triCount": 128
+    },
+    {
+     "node": 18,
+     "mesh": 18,
+     "vertexStart": 278968,
+     "vertexCount": 378,
+     "triStart": 137843,
+     "triCount": 128
+    },
+    {
+     "node": 19,
+     "mesh": 19,
+     "vertexStart": 279346,
+     "vertexCount": 378,
+     "triStart": 137971,
+     "triCount": 128
+    },
+    {
+     "node": 20,
+     "mesh": 20,
+     "vertexStart": 279724,
+     "vertexCount": 378,
+     "triStart": 138099,
+     "triCount": 128
+    }
+   ],
+   "occurrences": 16,
+   "totalVertices": 6048,
+   "totalTriangles": 2048
+  },
+  "276-8354-404": {
+   "name": "276-8354-404",
+   "node": 21,
+   "mesh": 21,
+   "vertexStart": 192510,
+   "vertexCount": 2882,
+   "indexStart": 318057,
+   "indexCount": 2928,
+   "triStart": 106019,
+   "triCount": 976,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 22,
+     "mesh": 22,
+     "vertexStart": 195392,
+     "vertexCount": 2882,
+     "triStart": 106995,
+     "triCount": 976
+    },
+    {
+     "node": 23,
+     "mesh": 23,
+     "vertexStart": 198274,
+     "vertexCount": 2882,
+     "triStart": 107971,
+     "triCount": 976
+    },
+    {
+     "node": 24,
+     "mesh": 24,
+     "vertexStart": 201156,
+     "vertexCount": 2882,
+     "triStart": 108947,
+     "triCount": 976
+    },
+    {
+     "node": 25,
+     "mesh": 25,
+     "vertexStart": 204038,
+     "vertexCount": 2882,
+     "triStart": 109923,
+     "triCount": 976
+    },
+    {
+     "node": 26,
+     "mesh": 26,
+     "vertexStart": 206920,
+     "vertexCount": 2882,
+     "triStart": 110899,
+     "triCount": 976
+    },
+    {
+     "node": 27,
+     "mesh": 27,
+     "vertexStart": 209802,
+     "vertexCount": 2882,
+     "triStart": 111875,
+     "triCount": 976
+    },
+    {
+     "node": 28,
+     "mesh": 28,
+     "vertexStart": 212684,
+     "vertexCount": 2882,
+     "triStart": 112851,
+     "triCount": 976
+    }
+   ],
+   "occurrences": 8,
+   "totalVertices": 23056,
+   "totalTriangles": 7808
+  },
+  "276-7596-351_276-7596-313": {
+   "name": "276-7596-351_276-7596-313",
+   "node": 29,
+   "mesh": 29,
+   "vertexStart": 177018,
+   "vertexCount": 1233,
+   "indexStart": 296649,
+   "indexCount": 1674,
+   "triStart": 98883,
+   "triCount": 558,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 30,
+     "mesh": 30,
+     "vertexStart": 178251,
+     "vertexCount": 1233,
+     "triStart": 99441,
+     "triCount": 558
+    },
+    {
+     "node": 31,
+     "mesh": 31,
+     "vertexStart": 179484,
+     "vertexCount": 1233,
+     "triStart": 99999,
+     "triCount": 558
+    },
+    {
+     "node": 32,
+     "mesh": 32,
+     "vertexStart": 180717,
+     "vertexCount": 1233,
+     "triStart": 100557,
+     "triCount": 558
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 4932,
+   "totalTriangles": 2232
+  },
+  "276-7596-351_276-7596-314": {
+   "name": "276-7596-351_276-7596-314",
+   "node": 33,
+   "mesh": 33,
+   "vertexStart": 181950,
+   "vertexCount": 1443,
+   "indexStart": 303345,
+   "indexCount": 2034,
+   "triStart": 101115,
+   "triCount": 678,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 34,
+     "mesh": 34,
+     "vertexStart": 183393,
+     "vertexCount": 1443,
+     "triStart": 101793,
+     "triCount": 678
+    },
+    {
+     "node": 35,
+     "mesh": 35,
+     "vertexStart": 184836,
+     "vertexCount": 1443,
+     "triStart": 102471,
+     "triCount": 678
+    },
+    {
+     "node": 36,
+     "mesh": 36,
+     "vertexStart": 186279,
+     "vertexCount": 1443,
+     "triStart": 103149,
+     "triCount": 678
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 5772,
+   "totalTriangles": 2712
+  },
+  "276-7596-351_276-7596-315": {
+   "name": "276-7596-351_276-7596-315",
+   "node": 37,
+   "mesh": 37,
+   "vertexStart": 187722,
+   "vertexCount": 1197,
+   "indexStart": 311481,
+   "indexCount": 1644,
+   "triStart": 103827,
+   "triCount": 548,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 38,
+     "mesh": 38,
+     "vertexStart": 188919,
+     "vertexCount": 1197,
+     "triStart": 104375,
+     "triCount": 548
+    },
+    {
+     "node": 39,
+     "mesh": 39,
+     "vertexStart": 190116,
+     "vertexCount": 1197,
+     "triStart": 104923,
+     "triCount": 548
+    },
+    {
+     "node": 40,
+     "mesh": 40,
+     "vertexStart": 191313,
+     "vertexCount": 1197,
+     "triStart": 105471,
+     "triCount": 548
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 4788,
+   "totalTriangles": 2192
+  },
+  "276-7596-350_276-7596-309": {
+   "name": "276-7596-350_276-7596-309",
+   "node": 41,
+   "mesh": 41,
+   "vertexStart": 170922,
+   "vertexCount": 1486,
+   "indexStart": 288270,
+   "indexCount": 2133,
+   "triStart": 96090,
+   "triCount": 711,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-308": {
+   "name": "276-7596-350_276-7596-308",
+   "node": 42,
+   "mesh": 42,
+   "vertexStart": 169147,
+   "vertexCount": 1775,
+   "indexStart": 286080,
+   "indexCount": 2190,
+   "triStart": 95360,
+   "triCount": 730,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-307": {
+   "name": "276-7596-350_276-7596-307",
+   "node": 43,
+   "mesh": 43,
+   "vertexStart": 167427,
+   "vertexCount": 1720,
+   "indexStart": 283863,
+   "indexCount": 2217,
+   "triStart": 94621,
+   "triCount": 739,
+   "instances": 0
+  },
+  "276-7596-317_Corner": {
+   "name": "276-7596-317_Corner",
+   "node": 44,
+   "mesh": 44,
+   "vertexStart": 155724,
+   "vertexCount": 654,
+   "indexStart": 267816,
+   "indexCount": 840,
+   "triStart": 89272,
+   "triCount": 280,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 45,
+     "mesh": 45,
+     "vertexStart": 156378,
+     "vertexCount": 654,
+     "triStart": 89552,
+     "triCount": 280
+    },
+    {
+     "node": 46,
+     "mesh": 46,
+     "vertexStart": 157032,
+     "vertexCount": 654,
+     "triStart": 89832,
+     "triCount": 280
+    },
+    {
+     "node": 47,
+     "mesh": 47,
+     "vertexStart": 157686,
+     "vertexCount": 654,
+     "triStart": 90112,
+     "triCount": 280
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 2616,
+   "totalTriangles": 1120
+  },
+  "276-7596-316": {
+   "name": "276-7596-316",
+   "node": 48,
+   "mesh": 48,
+   "vertexStart": 149460,
+   "vertexCount": 783,
+   "indexStart": 259416,
+   "indexCount": 1050,
+   "triStart": 86472,
+   "triCount": 350,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 49,
+     "mesh": 49,
+     "vertexStart": 150243,
+     "vertexCount": 783,
+     "triStart": 86822,
+     "triCount": 350
+    },
+    {
+     "node": 50,
+     "mesh": 50,
+     "vertexStart": 151026,
+     "vertexCount": 783,
+     "triStart": 87172,
+     "triCount": 350
+    },
+    {
+     "node": 51,
+     "mesh": 51,
+     "vertexStart": 151809,
+     "vertexCount": 783,
+     "triStart": 87522,
+     "triCount": 350
+    },
+    {
+     "node": 52,
+     "mesh": 52,
+     "vertexStart": 152592,
+     "vertexCount": 783,
+     "triStart": 87872,
+     "triCount": 350
+    },
+    {
+     "node": 53,
+     "mesh": 53,
+     "vertexStart": 153375,
+     "vertexCount": 783,
+     "triStart": 88222,
+     "triCount": 350
+    },
+    {
+     "node": 54,
+     "mesh": 54,
+     "vertexStart": 154158,
+     "vertexCount": 783,
+     "triStart": 88572,
+     "triCount": 350
+    },
+    {
+     "node": 55,
+     "mesh": 55,
+     "vertexStart": 154941,
+     "vertexCount": 783,
+     "triStart": 88922,
+     "triCount": 350
+    }
+   ],
+   "occurrences": 8,
+   "totalVertices": 6264,
+   "totalTriangles": 2800
+  },
+  "276-7596-014": {
+   "name": "276-7596-014",
+   "node": 56,
+   "mesh": 56,
+   "vertexStart": 149172,
+   "vertexCount": 24,
+   "indexStart": 258984,
+   "indexCount": 36,
+   "triStart": 86328,
+   "triCount": 12,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 57,
+     "mesh": 57,
+     "vertexStart": 149196,
+     "vertexCount": 24,
+     "triStart": 86340,
+     "triCount": 12
+    },
+    {
+     "node": 58,
+     "mesh": 58,
+     "vertexStart": 149220,
+     "vertexCount": 24,
+     "triStart": 86352,
+     "triCount": 12
+    },
+    {
+     "node": 59,
+     "mesh": 59,
+     "vertexStart": 149244,
+     "vertexCount": 24,
+     "triStart": 86364,
+     "triCount": 12
+    },
+    {
+     "node": 60,
+     "mesh": 60,
+     "vertexStart": 149268,
+     "vertexCount": 24,
+     "triStart": 86376,
+     "triCount": 12
+    },
+    {
+     "node": 61,
+     "mesh": 61,
+     "vertexStart": 149292,
+     "vertexCount": 24,
+     "triStart": 86388,
+     "triCount": 12
+    },
+    {
+     "node": 62,
+     "mesh": 62,
+     "vertexStart": 149316,
+     "vertexCount": 24,
+     "triStart": 86400,
+     "triCount": 12
+    },
+    {
+     "node": 63,
+     "mesh": 63,
+     "vertexStart": 149340,
+     "vertexCount": 24,
+     "triStart": 86412,
+     "triCount": 12
+    }
+   ],
+   "occurrences": 8,
+   "totalVertices": 192,
+   "totalTriangles": 96
+  },
+  "276-7596-015": {
+   "name": "276-7596-015",
+   "node": 64,
+   "mesh": 64,
+   "vertexStart": 149364,
+   "vertexCount": 24,
+   "indexStart": 259272,
+   "indexCount": 36,
+   "triStart": 86424,
+   "triCount": 12,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 65,
+     "mesh": 65,
+     "vertexStart": 149388,
+     "vertexCount": 24,
+     "triStart": 86436,
+     "triCount": 12
+    },
+    {
+     "node": 66,
+     "mesh": 66,
+     "vertexStart": 149412,
+     "vertexCount": 24,
+     "triStart": 86448,
+     "triCount": 12
+    },
+    {
+     "node": 67,
+     "mesh": 67,
+     "vertexStart": 149436,
+     "vertexCount": 24,
+     "triStart": 86460,
+     "triCount": 12
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 96,
+   "totalTriangles": 48
+  },
+  "276-7596-350_276-7596-312": {
+   "name": "276-7596-350_276-7596-312",
+   "node": 68,
+   "mesh": 68,
+   "vertexStart": 175563,
+   "vertexCount": 1455,
+   "indexStart": 294597,
+   "indexCount": 2052,
+   "triStart": 98199,
+   "triCount": 684,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-303": {
+   "name": "276-7596-350_276-7596-303",
+   "node": 69,
+   "mesh": 69,
+   "vertexStart": 161474,
+   "vertexCount": 1484,
+   "indexStart": 275544,
+   "indexCount": 2103,
+   "triStart": 91848,
+   "triCount": 701,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-306": {
+   "name": "276-7596-350_276-7596-306",
+   "node": 70,
+   "mesh": 70,
+   "vertexStart": 166014,
+   "vertexCount": 1413,
+   "indexStart": 281865,
+   "indexCount": 1998,
+   "triStart": 93955,
+   "triCount": 666,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-310": {
+   "name": "276-7596-350_276-7596-310",
+   "node": 71,
+   "mesh": 71,
+   "vertexStart": 172408,
+   "vertexCount": 1627,
+   "indexStart": 290403,
+   "indexCount": 2073,
+   "triStart": 96801,
+   "triCount": 691,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-301": {
+   "name": "276-7596-350_276-7596-301",
+   "node": 72,
+   "mesh": 72,
+   "vertexStart": 158340,
+   "vertexCount": 1570,
+   "indexStart": 271176,
+   "indexCount": 2235,
+   "triStart": 90392,
+   "triCount": 745,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-304": {
+   "name": "276-7596-350_276-7596-304",
+   "node": 73,
+   "mesh": 73,
+   "vertexStart": 162958,
+   "vertexCount": 1508,
+   "indexStart": 277647,
+   "indexCount": 2091,
+   "triStart": 92549,
+   "triCount": 697,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-311": {
+   "name": "276-7596-350_276-7596-311",
+   "node": 74,
+   "mesh": 74,
+   "vertexStart": 174035,
+   "vertexCount": 1528,
+   "indexStart": 292476,
+   "indexCount": 2121,
+   "triStart": 97492,
+   "triCount": 707,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-302": {
+   "name": "276-7596-350_276-7596-302",
+   "node": 75,
+   "mesh": 75,
+   "vertexStart": 159910,
+   "vertexCount": 1564,
+   "indexStart": 273411,
+   "indexCount": 2133,
+   "triStart": 91137,
+   "triCount": 711,
+   "instances": 0
+  },
+  "276-7596-350_276-7596-305": {
+   "name": "276-7596-350_276-7596-305",
+   "node": 76,
+   "mesh": 76,
+   "vertexStart": 164466,
+   "vertexCount": 1548,
+   "indexStart": 279738,
+   "indexCount": 2127,
+   "triStart": 93246,
+   "triCount": 709,
+   "instances": 0
+  },
+  "276-6904-001": {
+   "name": "276-6904-001",
+   "node": 77,
+   "mesh": 77,
+   "vertexStart": 0,
+   "vertexCount": 149172,
+   "indexStart": 0,
+   "indexCount": 258984,
+   "triStart": 0,
+   "triCount": 86328,
+   "instances": 0
+  },
+  "276-9250-021": {
+   "name": "276-9250-021",
+   "node": 78,
+   "mesh": 78,
+   "vertexStart": 215566,
+   "vertexCount": 763,
+   "indexStart": 341481,
+   "indexCount": 1074,
+   "triStart": 113827,
+   "triCount": 358,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 85,
+     "mesh": 85,
+     "vertexStart": 216329,
+     "vertexCount": 763,
+     "triStart": 114185,
+     "triCount": 358
+    },
+    {
+     "node": 92,
+     "mesh": 92,
+     "vertexStart": 217092,
+     "vertexCount": 763,
+     "triStart": 114543,
+     "triCount": 358
+    },
+    {
+     "node": 99,
+     "mesh": 99,
+     "vertexStart": 217855,
+     "vertexCount": 763,
+     "triStart": 114901,
+     "triCount": 358
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 3052,
+   "totalTriangles": 1432
+  },
+  "276-9250-022": {
+   "name": "276-9250-022",
+   "node": 79,
+   "mesh": 79,
+   "vertexStart": 218618,
+   "vertexCount": 770,
+   "indexStart": 345777,
+   "indexCount": 1080,
+   "triStart": 115259,
+   "triCount": 360,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 86,
+     "mesh": 86,
+     "vertexStart": 219388,
+     "vertexCount": 770,
+     "triStart": 115619,
+     "triCount": 360
+    },
+    {
+     "node": 93,
+     "mesh": 93,
+     "vertexStart": 220158,
+     "vertexCount": 770,
+     "triStart": 115979,
+     "triCount": 360
+    },
+    {
+     "node": 100,
+     "mesh": 100,
+     "vertexStart": 220928,
+     "vertexCount": 770,
+     "triStart": 116339,
+     "triCount": 360
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 3080,
+   "totalTriangles": 1440
+  },
+  "276-9250-024": {
+   "name": "276-9250-024",
+   "node": 80,
+   "mesh": 80,
+   "vertexStart": 223674,
+   "vertexCount": 4230,
+   "indexStart": 353265,
+   "indexCount": 4290,
+   "triStart": 117755,
+   "triCount": 1430,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 81,
+     "mesh": 81,
+     "vertexStart": 227904,
+     "vertexCount": 4230,
+     "triStart": 119185,
+     "triCount": 1430
+    },
+    {
+     "node": 87,
+     "mesh": 87,
+     "vertexStart": 232134,
+     "vertexCount": 4230,
+     "triStart": 120615,
+     "triCount": 1430
+    },
+    {
+     "node": 88,
+     "mesh": 88,
+     "vertexStart": 236364,
+     "vertexCount": 4230,
+     "triStart": 122045,
+     "triCount": 1430
+    },
+    {
+     "node": 94,
+     "mesh": 94,
+     "vertexStart": 240594,
+     "vertexCount": 4230,
+     "triStart": 123475,
+     "triCount": 1430
+    },
+    {
+     "node": 95,
+     "mesh": 95,
+     "vertexStart": 244824,
+     "vertexCount": 4230,
+     "triStart": 124905,
+     "triCount": 1430
+    },
+    {
+     "node": 101,
+     "mesh": 101,
+     "vertexStart": 249054,
+     "vertexCount": 4230,
+     "triStart": 126335,
+     "triCount": 1430
+    },
+    {
+     "node": 102,
+     "mesh": 102,
+     "vertexStart": 253284,
+     "vertexCount": 4230,
+     "triStart": 127765,
+     "triCount": 1430
+    }
+   ],
+   "occurrences": 8,
+   "totalVertices": 33840,
+   "totalTriangles": 11440
+  },
+  "276-9250-023_GREY": {
+   "name": "276-9250-023_GREY",
+   "node": 82,
+   "mesh": 82,
+   "vertexStart": 221698,
+   "vertexCount": 494,
+   "indexStart": 350097,
+   "indexCount": 792,
+   "triStart": 116699,
+   "triCount": 264,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 89,
+     "mesh": 89,
+     "vertexStart": 222192,
+     "vertexCount": 494,
+     "triStart": 116963,
+     "triCount": 264
+    },
+    {
+     "node": 96,
+     "mesh": 96,
+     "vertexStart": 222686,
+     "vertexCount": 494,
+     "triStart": 117227,
+     "triCount": 264
+    },
+    {
+     "node": 103,
+     "mesh": 103,
+     "vertexStart": 223180,
+     "vertexCount": 494,
+     "triStart": 117491,
+     "triCount": 264
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 1976,
+   "totalTriangles": 1056
+  },
+  "276-9250-027": {
+   "name": "276-9250-027",
+   "node": 83,
+   "mesh": 83,
+   "vertexStart": 257514,
+   "vertexCount": 112,
+   "indexStart": 387585,
+   "indexCount": 204,
+   "triStart": 129195,
+   "triCount": 68,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 84,
+     "mesh": 84,
+     "vertexStart": 257626,
+     "vertexCount": 112,
+     "triStart": 129263,
+     "triCount": 68
+    },
+    {
+     "node": 90,
+     "mesh": 90,
+     "vertexStart": 257738,
+     "vertexCount": 112,
+     "triStart": 129331,
+     "triCount": 68
+    },
+    {
+     "node": 91,
+     "mesh": 91,
+     "vertexStart": 257850,
+     "vertexCount": 112,
+     "triStart": 129399,
+     "triCount": 68
+    },
+    {
+     "node": 97,
+     "mesh": 97,
+     "vertexStart": 257962,
+     "vertexCount": 112,
+     "triStart": 129467,
+     "triCount": 68
+    },
+    {
+     "node": 98,
+     "mesh": 98,
+     "vertexStart": 258074,
+     "vertexCount": 112,
+     "triStart": 129535,
+     "triCount": 68
+    },
+    {
+     "node": 104,
+     "mesh": 104,
+     "vertexStart": 258186,
+     "vertexCount": 112,
+     "triStart": 129603,
+     "triCount": 68
+    },
+    {
+     "node": 105,
+     "mesh": 105,
+     "vertexStart": 258298,
+     "vertexCount": 112,
+     "triStart": 129671,
+     "triCount": 68
+    }
+   ],
+   "occurrences": 8,
+   "totalVertices": 896,
+   "totalTriangles": 544
+  },
+  "276-9250-032": {
+   "name": "276-9250-032",
+   "node": 106,
+   "mesh": 106,
+   "vertexStart": 265846,
+   "vertexCount": 508,
+   "indexStart": 398721,
+   "indexCount": 894,
+   "triStart": 132907,
+   "triCount": 298,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 112,
+     "mesh": 112,
+     "vertexStart": 266354,
+     "vertexCount": 508,
+     "triStart": 133205,
+     "triCount": 298
+    },
+    {
+     "node": 118,
+     "mesh": 118,
+     "vertexStart": 266862,
+     "vertexCount": 508,
+     "triStart": 133503,
+     "triCount": 298
+    },
+    {
+     "node": 124,
+     "mesh": 124,
+     "vertexStart": 267370,
+     "vertexCount": 508,
+     "triStart": 133801,
+     "triCount": 298
+    }
+   ],
+   "occurrences": 4,
+   "totalVertices": 2032,
+   "totalTriangles": 1192
+  },
+  "SBT0832_276-4993-001": {
+   "name": "SBT0832_276-4993-001",
+   "node": 107,
+   "mesh": 107,
+   "vertexStart": 267878,
+   "vertexCount": 386,
+   "indexStart": 402297,
+   "indexCount": 390,
+   "triStart": 134099,
+   "triCount": 130,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 108,
+     "mesh": 108,
+     "vertexStart": 268264,
+     "vertexCount": 386,
+     "triStart": 134229,
+     "triCount": 130
+    },
+    {
+     "node": 109,
+     "mesh": 109,
+     "vertexStart": 268650,
+     "vertexCount": 386,
+     "triStart": 134359,
+     "triCount": 130
+    },
+    {
+     "node": 110,
+     "mesh": 110,
+     "vertexStart": 269036,
+     "vertexCount": 386,
+     "triStart": 134489,
+     "triCount": 130
+    },
+    {
+     "node": 113,
+     "mesh": 113,
+     "vertexStart": 269422,
+     "vertexCount": 386,
+     "triStart": 134619,
+     "triCount": 130
+    },
+    {
+     "node": 114,
+     "mesh": 114,
+     "vertexStart": 269808,
+     "vertexCount": 386,
+     "triStart": 134749,
+     "triCount": 130
+    },
+    {
+     "node": 115,
+     "mesh": 115,
+     "vertexStart": 270194,
+     "vertexCount": 386,
+     "triStart": 134879,
+     "triCount": 130
+    },
+    {
+     "node": 116,
+     "mesh": 116,
+     "vertexStart": 270580,
+     "vertexCount": 386,
+     "triStart": 135009,
+     "triCount": 130
+    },
+    {
+     "node": 119,
+     "mesh": 119,
+     "vertexStart": 270966,
+     "vertexCount": 386,
+     "triStart": 135139,
+     "triCount": 130
+    },
+    {
+     "node": 120,
+     "mesh": 120,
+     "vertexStart": 271352,
+     "vertexCount": 386,
+     "triStart": 135269,
+     "triCount": 130
+    },
+    {
+     "node": 121,
+     "mesh": 121,
+     "vertexStart": 271738,
+     "vertexCount": 386,
+     "triStart": 135399,
+     "triCount": 130
+    },
+    {
+     "node": 122,
+     "mesh": 122,
+     "vertexStart": 272124,
+     "vertexCount": 386,
+     "triStart": 135529,
+     "triCount": 130
+    },
+    {
+     "node": 125,
+     "mesh": 125,
+     "vertexStart": 272510,
+     "vertexCount": 386,
+     "triStart": 135659,
+     "triCount": 130
+    },
+    {
+     "node": 126,
+     "mesh": 126,
+     "vertexStart": 272896,
+     "vertexCount": 386,
+     "triStart": 135789,
+     "triCount": 130
+    },
+    {
+     "node": 127,
+     "mesh": 127,
+     "vertexStart": 273282,
+     "vertexCount": 386,
+     "triStart": 135919,
+     "triCount": 130
+    },
+    {
+     "node": 128,
+     "mesh": 128,
+     "vertexStart": 273668,
+     "vertexCount": 386,
+     "triStart": 136049,
+     "triCount": 130
+    }
+   ],
+   "occurrences": 16,
+   "totalVertices": 6176,
+   "totalTriangles": 2080
+  },
+  "276-9250-031_Red Loader": {
+   "name": "276-9250-031_Red Loader",
+   "node": 111,
+   "mesh": 111,
+   "vertexStart": 262128,
+   "vertexCount": 1859,
+   "indexStart": 393969,
+   "indexCount": 2376,
+   "triStart": 131323,
+   "triCount": 792,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 117,
+     "mesh": 117,
+     "vertexStart": 263987,
+     "vertexCount": 1859,
+     "triStart": 132115,
+     "triCount": 792
+    }
+   ],
+   "occurrences": 2,
+   "totalVertices": 3718,
+   "totalTriangles": 1584
+  },
+  "276-9250-031_Blue Loader": {
+   "name": "276-9250-031_Blue Loader",
+   "node": 123,
+   "mesh": 123,
+   "vertexStart": 258410,
+   "vertexCount": 1859,
+   "indexStart": 389217,
+   "indexCount": 2376,
+   "triStart": 129739,
+   "triCount": 792,
+   "instances": 0,
+   "nodes": [
+    {
+     "node": 129,
+     "mesh": 129,
+     "vertexStart": 260269,
+     "vertexCount": 1859,
+     "triStart": 130531,
+     "triCount": 792
+    }
+   ],
+   "occurrences": 2,
+   "totalVertices": 3718,
+   "totalTriangles": 1584
+  }
+ },
+ "fieldMesh": "field.glb",
+ "halfMeshes": {
+  "red": "half_red.glb",
+  "blue": "half_blue.glb",
+  "yellow": "half_yellow.glb",
+  "clear": "half_clear.glb",
+  "gray": "half_gray.glb"
+ },
+ "goalMeshes": {
+  "neutral-tall": "goal_neutral-tall.glb",
+  "neutral-short": "goal_neutral-short.glb",
+  "alliance-red": "goal_alliance-red.glb",
+  "alliance-blue": "goal_alliance-blue.glb"
+ }
+}

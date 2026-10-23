@@ -1,6 +1,7 @@
 # VEX3D — VEX V5「Override」3D 战术分析演示器
 
 [![CI](https://github.com/JiHuiYiYou/VEX3D/actions/workflows/ci.yml/badge.svg)](https://github.com/JiHuiYiYou/VEX3D/actions/workflows/ci.yml)
+[![在线体验](https://img.shields.io/badge/在线体验-jihuiyiyou.github.io%2FVEX3D-22d3ee)](https://jihuiyiyou.github.io/VEX3D/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 在浏览器里摆弄 2026-2027 **Override** 赛季的得分物，实时算分。
@@ -102,10 +103,34 @@ npm run build      # 产物在 dist/
 
 机器吃力时可以在网址后面加 `?quality=low`（关阴影、降像素比）。
 
-> **克隆下来跑不起来 —— 除非先生成 CAD 资产。** 场地的几何**只有官方 Field CAD 一份来源**，
-> 没有手搓的「相似版」：转换出来的资产（`public/assets/`，约 27 MB）不入库，
-> 所以新克隆的仓库启动时会直接报错，并告诉你怎么生成。宁可少一个功能，也不要给你一个
-> 「看着像官方场地、其实不是」的东西。
+> **CAD 资产已经入库了**（`public/assets/`，约 17 MB）→ 克隆下来 `npm install && npm run dev`
+> 直接就能跑，**不用**装 `cadquery-ocp`、不用下 126 MB 的 STEP、不用等 8 分钟的缓存。
+> 想自己重新生成一遍的话见下面「重新生成 CAD 资产」。
+
+## 在线体验
+
+**https://jihuiyiyou.github.io/VEX3D/**
+
+推 main → CI 自动构建并发布（[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)）。
+纯静态站，没有后端、没有统计、没有 cookie。
+
+## 部署
+
+这是个纯静态站（`dist/` = 一个 HTML + 一个 JS + CSS + 17 MB 的 glb），
+**任何静态服务器都能托管**：
+
+```bash
+npm run build
+# → dist/ 直接丢进 nginx / Caddy / 对象存储 / GitHub Pages 即可
+```
+
+- **GitHub Pages**（本仓库用的）：`Settings → Pages → Source` 选 `GitHub Actions`，
+  之后每次推 main 自动发布。仓库挂在 `/VEX3D/` 子路径下，所以 `vite.config.ts` 里
+  用了 `base: './'`（相对路径）—— 同一份 `dist/` 换到任何路径下都能跑。
+- **本地看一眼生产版**：`npm run preview`（或 `python -m http.server` 指到 `dist/`）。
+- **验证发布产物**：`tools/verify_ui.py --url "http://127.0.0.1:8000/VEX3D/?quality=low&debug=1"`
+  —— 同一套 61 条断言跑在**生产构建**上（`?debug=1` 才会把内部状态挂到 window 上，
+  平时不开）。
 
 ## 重新生成 CAD 资产
 
@@ -124,7 +149,8 @@ tools/.venv/Scripts/python.exe tools/validate_assets.py
 > CAD 里一个半体有 742 个面，逐面三角化出来一万多个三角形；
 > 减面后每帧三角形少三分之二，近景看不出差别。场地本体不减。
 
-产物在 `public/assets/`（不入库）。管线细节见 [`tools/README.md`](tools/README.md)。
+产物在 `public/assets/`（**入库**了 —— 改了管线之后记得重新生成并一起提交）。
+管线细节见 [`tools/README.md`](tools/README.md)。
 
 ## 项目结构
 

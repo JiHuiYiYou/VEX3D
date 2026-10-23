@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+# 推 main 就发布：https://jihuiyiyou.github.io/VEX3D/
+#
+# 关键前提：**CAD 资产（public/assets/ 那 17 MB）已经入库**，
+# 所以这里只要 `npm ci && npm run build` 就得到一个完整的站，
+# 不用在 CI 里装 cadquery-ocp、不用下 126 MB 的 STEP、不用跑 8 分钟的管线。
+#
+# 首次要做的：在仓库 Settings → Pages → Source 选 "GitHub Actions"
+# （这个 workflow 会自动建 Pages 站点；或用 gh api 打开：
+#   gh api -X PUT repos/JiHuiYiYou/VEX3D/pages -f build_type=workflow )
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一个发布；新 push 掐掉旧的
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 构建
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 先跑回归测试再发版 —— 别把坏掉的版本推上去
+      - name: 计分引擎回归测试
+        run: npm test
+
+      # build 里已经含 tsc -b（类型检查）
+      - name: 构建
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    name: 发布
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

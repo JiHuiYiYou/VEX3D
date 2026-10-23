@@ -16,6 +16,17 @@ C:/Users/liuzhen/miniconda3/python.exe tools/verify_ui.py   # 端到端（需先
 
 `python` 在 PATH 上指向 MSYS2 的（没 playwright），要用 miniconda3 那个。
 
+**CAD 资产（`public/assets/`，17 MB）已经入库** → clone 下来直接 `npm install && npm run dev`
+就能跑，**不用**装 `cadquery-ocp`、不用下 126 MB 的 STEP、不用等 8 分钟的缓存。
+要重新生成才需要那套管线（见下）。
+
+**发布**（GitHub Pages）：推 main → `.github/workflows/deploy.yml` 自动构建并发布到
+https://jihuiyiyou.github.io/VEX3D/ 。仓库挂在 `/VEX3D/` 子路径下，所以
+`vite.config.ts` 用 `base: './'`（相对路径）—— 同一份 `dist/` 换到任何路径都能跑。
+验证**发布产物**：`tools/verify_ui.py --url "http://127.0.0.1:8000/VEX3D/?quality=low&debug=1"`
+（同一套 61 条断言跑在生产构建上；`?debug=1` 才会把 `__vex3d` / `__bridge` 挂到 window，
+平时不开 —— 见 `src/devTools.ts`）。
+
 ## 摆场预设（官方开局布局）
 
 顶栏「摆场」= 重置 + 灌一份预设：一键把场地摆成**官方开局布局**。
@@ -95,6 +106,8 @@ src/
 - **没有程序化兜底**：手搓的场地/胶带/围栏/goal/半体几何已经全部删掉
   （`scene/geometry.ts`、`scene/Field.tsx`、`scene/Toggles.tsx`）。
   少一个 CAD 资产 → app **启动时整屏报错**并给出生成命令，不画一个「像但不是」的场地 ✓。
+  （转换出来的资产 `public/assets/` **是入库的** —— 这样 clone 下来就能跑、
+  Pages 能直接发版；管线本身仍然是唯一来源，改了管线要重新生成并一起提交。）
 - `fieldSpec.ts` 里只剩**实测常量**（半体尺寸、goal 位置、pin/cup 高度）；
   运行期的 goal 规格一律取 `field.json`（`loadFieldSpec()` 会顺手把 JSON 里的 goal
   写回 `GOAL_BY_ID`，并检查和常量差了多少毫米）。
