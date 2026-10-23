@@ -47,7 +47,11 @@ jobs:
       - name: 构建
         run: npm run build
 
+      # `enablement: true` = 站点不存在就**自动建一个**（fork 出去也能直接发，
+      # 不用先去 Settings → Pages 点一遍）
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v4
         with:
