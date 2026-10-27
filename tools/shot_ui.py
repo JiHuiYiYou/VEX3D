@@ -1,5 +1,5 @@
 """
-拍 UI 截图（README 用）：左侧的 toggle 设置面板、场上的 toggle 颜色、中场的机器人数。
+拍 UI 截图（README 用）：场上的 toggle 颜色、右栏常驻的中场机器人数。
 
     C:/Users/liuzhen/miniconda3/python.exe tools/shot_ui.py [url]
 """
@@ -19,26 +19,8 @@ DOCS = os.path.join(ROOT, "docs")
 os.makedirs(DOCS, exist_ok=True)
 
 
-def toggle_points(pg):
-    return pg.evaluate(
-        """() => {
-          const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
-          const cam = b.camera; const r = b.domElement.getBoundingClientRect();
-          const out = [];
-          s.traverse(o => {
-            if (!o.isMesh || !/9250-023/i.test(o.name || '')) return;
-            o.geometry.computeBoundingBox();
-            const c = o.geometry.boundingBox.getCenter(new o.position.constructor());
-            const v = c.clone().project(cam);
-            if (v.z < 1) out.push([r.left+(v.x+1)/2*r.width, r.top+(1-v.y)/2*r.height]);
-          });
-          return out;
-        }"""
-    )
-
-
 def main():
-    url = "http://127.0.0.1:5173/?quality=medium"
+    url = "http://localhost:5173/?quality=medium"
     with sync_playwright() as p:
         b = p.chromium.launch(headless=True, args=ARGS)
         pg = b.new_page(viewport={"width": 1400, "height": 900})
@@ -46,7 +28,7 @@ def main():
         pg.wait_for_selector("canvas")
         time.sleep(12)
 
-        # ① 左侧的 toggle 设置 + 场上的 toggle 颜色
+        # ① 场上的 toggle 颜色（围栏上那 4 根条 + 区域染色）
         pg.evaluate(
             """() => {
               const st = window.__vex3d.getState();
@@ -57,14 +39,10 @@ def main():
             }"""
         )
         time.sleep(1.0)
-        pts = toggle_points(pg)
-        if pts:
-            pg.mouse.click(pts[0][0], pts[0][1])
-            time.sleep(0.8)
         pg.screenshot(path=os.path.join(DOCS, "toggle.png"))
         print("→ docs/toggle.png")
 
-        # ② 中场：左侧的机器人数
+        # ② 中场：右栏常驻的机器人数
         pg.evaluate("() => window.__vex3d.getState().selectGoal('g-center')")
         time.sleep(0.8)
         pg.screenshot(path=os.path.join(DOCS, "midfield.png"))

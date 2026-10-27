@@ -3,19 +3,18 @@ import { useApp } from './store'
 import {
   dragPointer,
   resetDragPointer,
-  edgeDistances,
-  TRASH_EDGE,
+  overTrashSlot,
   DRAG_THRESHOLD,
 } from './drag'
-import { pickDropTarget, pickOnPlane, sceneBridge, stageRect } from '@/scene/bridge'
+import { pickDropTarget, pickLooseTarget, pickOnPlane, sceneBridge } from '@/scene/bridge'
 
 /**
  * 全局拖拽控制器。
  *
  * 用 window 上的 pointer 事件（而不是只在 canvas 上），
- * 这样从左侧面板拖到画布、从画布拖到屏幕边缘是同一套逻辑。
+ * 这样从右栏拖到画布、从画布拖到右上角的删除方块是同一套逻辑。
  * 指针的实时坐标放在普通对象里（不触发 React 重渲染）；
- * 只有「悬停到哪个桩」「是否在垃圾桶上」这种离散状态才进 store。
+ * 只有「悬停到哪个桩」「是否在删除方块上」这种离散状态才进 store。
  *
  * ★ **点击 ≠ 拖动**：指针没移动过（`dragPointer.moved === false`）时，
  *   松手只当作「选中」，不挪位置、不放上 goal、不删东西。
@@ -49,18 +48,11 @@ export function useDragController() {
         e.clientY <= rect.bottom
       dragPointer.overCanvas = overCanvas
 
-      // 靠近 3D 画布的边缘 → 垃圾桶（基准是画布，不是整个窗口）
-      const stage = stageRect()
-      const insideCanvas =
-        e.clientX >= stage.left &&
-        e.clientX <= stage.right &&
-        e.clientY >= stage.top &&
-        e.clientY <= stage.bottom
-      const { nearest } = edgeDistances(e.clientX, e.clientY, stage)
-      // 只有拖「已放好的件 / 散件」才是删除手势；面板里拖新件靠边不算数（照常放件）
+      // 删除手势：拖「已放好的件 / 散件」时，右上角出现一个红色小方块，
+      // 拖进去就删。只有「从面板拖新件」是放置手势，不该有删除方块。
       const kind = st.dragging?.kind
       const deleting = kind === 'stack' || kind === 'loose'
-      st.setOverTrash(deleting && insideCanvas && nearest < TRASH_EDGE)
+      st.setOverTrash(deleting && overTrashSlot(e.clientX, e.clientY))
 
       // 拾取放置目标
       if (overCanvas) {
@@ -68,9 +60,16 @@ export function useDragController() {
         const goalId = hit ? (hit.userData.goalId as string) : null
         st.setHoverGoal(goalId)
         st.setDropTarget(goalId)
+        // 散件：拖到**另一个散件**上 = 跟它组合成一组
+        st.setHoverLoose(
+          kind === 'loose' && !goalId
+            ? pickLooseTarget(e.clientX, e.clientY, st.dragging?.kind === 'loose' ? st.dragging.groupId : undefined)
+            : null,
+        )
       } else {
         st.setHoverGoal(null)
         st.setDropTarget(null)
+        st.setHoverLoose(null)
       }
 
       // frameloop="demand"：指针移动时主动要一帧，幽灵件才会跟手
@@ -98,7 +97,7 @@ export function useDragController() {
         dragPointer.startX = dragPointer.clientX
         dragPointer.startY = dragPointer.clientY
         dragPointer.moved = false
-        // 上一次拖拽可能停在垃圾桶边上 → 状态要清掉，别连累下一次点击
+        // 上一次拖拽可能停在删除方块上 → 状态要清掉，别连累下一次点击
         state.setOverTrash(false)
       }
     })
@@ -110,20 +109,22 @@ export function useDragController() {
       const moved = dragPointer.moved
 
       if (moved && st.overTrash) {
-        // 拖到垃圾桶 → 删除（已放好的件 / 散件）；面板里拖出来的东西直接丢弃
+        // 拖到右上角的删除方块 → 删除（已放好的件 / 散件组）
         if (d.kind === 'stack') st.removeItem(d.goalId, d.item.id)
-        else if (d.kind === 'loose') st.removeLoose(d.looseId)
+        else if (d.kind === 'loose') st.removeLoose(d.groupId)
       } else if (moved && d.kind === 'palette' && st.hoverGoalId) {
         st.placeItem(st.hoverGoalId, d.item)
       } else if (moved && d.kind === 'loose') {
-        // 散件：落在 goal 上 → 进那个 goal 的摞（非法组合 placeItem 会拒绝）；
+        // 散件组：落在 goal 上 → 整摞追加；落在另一个散件上 → 组合成一组；
         // 否则 → 挪到落地的位置
         if (st.hoverGoalId) {
-          if (st.placeItem(st.hoverGoalId, d.item)) st.removeLoose(d.looseId)
+          st.placeLooseGroup(st.hoverGoalId, d.groupId)
+        } else if (st.hoverLooseId) {
+          st.combineLoose(st.hoverLooseId, d.groupId)
         } else {
           const p = pickOnPlane(dragPointer.clientX, dragPointer.clientY, 0)
           // three 的 z = −场地 Y
-          if (p) st.moveLoose(d.looseId, p.x, -p.z)
+          if (p) st.moveLoose(d.groupId, p.x, -p.z)
         }
       }
       // 没移动过 = 点击 → 什么都不做（选中已经在 pointerDown 时做过了）

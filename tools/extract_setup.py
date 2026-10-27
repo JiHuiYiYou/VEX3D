@@ -123,6 +123,49 @@ def lying_axis(o):
     return None
 
 
+def to_piece(it):
+    """散件 → 组里的一段。"""
+    p = {"id": it["id"], "kind": it["kind"], "halves": list(it["halves"])}
+    if it.get("axis"):
+        p["axis"] = it["axis"]
+    return p
+
+
+def group_loose(loose):
+    """散件 → **组**（一个整体）。
+
+    「插在 cup 里的 pin」和那个 cup 是**一个整体**：拖一个动两个、删一个删两个。
+    其余的散件各自一组（装填区备着的、单独躺在垫子上的）。
+    """
+    cup_at = {}
+    for it in loose:
+        if it["kind"] == "cup":
+            cup_at.setdefault((round(it["x"], 1), round(it["y"], 1)), it)
+
+    groups = []
+    used = set()
+    for it in loose:
+        if it["id"] in used:
+            continue
+        used.add(it["id"])
+        bottom = it
+        pieces = [to_piece(it)]
+        if it["kind"] == "pin" and it.get("nested"):
+            cup = cup_at.get((round(it["x"], 1), round(it["y"], 1)))
+            if cup is not None and cup["id"] not in used:
+                used.add(cup["id"])
+                bottom = cup
+                # cup 在下、pin 在上（针尖探进 cup 的腰）
+                pieces = [to_piece(cup), to_piece(it)]
+        groups.append({
+            "id": "g-" + bottom["id"],
+            "x": bottom["x"],
+            "y": bottom["y"],
+            "pieces": pieces,
+        })
+    return groups
+
+
 def check(field, stacks, loose):
     """跟官方 VR 表 / 得分物清单对账。"""
     problems = []
@@ -190,7 +233,7 @@ def check(field, stacks, loose):
     return problems, counts, worst
 
 
-def emit(stacks, loose):
+def emit(stacks, groups):
     L = []
     L.append("/**")
     L.append(" * 官方开局布局（「摆场」预设）")
@@ -208,9 +251,11 @@ def emit(stacks, loose):
     L.append(" *   四面墙各 2 组 (cup, 插着 pin 的 cup, cup)；4 个斜角落位周围各躺着 4 根 pin")
     L.append(" * · 装填区：红方 10 组 (cup + 红/黄 pin) + 2 根预装，蓝方对称")
     L.append(" *")
-    L.append(" * 散件**不参与计分**（手册只算 goal 里的 pin 和中场的机器人）。")
+    L.append(" * ★ 散件按**组**存：插在 cup 里的 pin 和那个 cup 是**一个整体**")
+    L.append(" *   （拖一个动两个、删一个删两个）。散件**不参与计分**")
+    L.append(" *   （手册只算 goal 里的 pin 和中场的机器人）。")
     L.append(" */")
-    L.append("import type { LooseItem } from '@/state/store'")
+    L.append("import type { LooseGroup } from '@/state/store'")
     L.append("import type { StackItem } from '@/state/scoring'")
     L.append("")
     L.append("export const INITIAL_SETUP_BUILD = 'official-cad-2026-04-26'")
@@ -228,16 +273,20 @@ def emit(stacks, loose):
         L.append(f"  '{gid}': [{parts}],")
     L.append("}")
     L.append("")
-    L.append("/** 场上所有不在 goal 里的得分物 */")
-    L.append("export const INITIAL_LOOSE: LooseItem[] = [")
-    for it in loose:
-        axis = it.get("axis")
-        nested = ", nested: true" if it.get("nested") else ""
-        axis_s = f", axis: [{axis[0]}, {axis[1]}, {axis[2]}]" if axis else ""
+    L.append("/** 场上所有不在 goal 里的得分物 —— 每一项是**一组**（一个整体） */")
+    L.append("export const INITIAL_LOOSE: LooseGroup[] = [")
+    for g in groups:
+        parts = []
+        for p in g["pieces"]:
+            axis = p.get("axis")
+            axis_s = f", axis: [{axis[0]}, {axis[1]}, {axis[2]}]" if axis else ""
+            parts.append(
+                "{ id: '%s', kind: '%s', halves: ['%s', '%s']%s }"
+                % (p["id"], p["kind"], p["halves"][0], p["halves"][1], axis_s)
+            )
         L.append(
-            "  { id: '%s', kind: '%s', halves: ['%s', '%s'], x: %s, y: %s%s%s },"
-            % (it["id"], it["kind"], it["halves"][0], it["halves"][1],
-               it["x"], it["y"], nested, axis_s)
+            "  { id: '%s', x: %s, y: %s, pieces: [%s] },"
+            % (g["id"], g["x"], g["y"], ", ".join(parts))
         )
     L.append("]")
     io.open(OUT, "w", encoding="utf-8").write("\n".join(L) + "\n")
@@ -271,9 +320,11 @@ def main():
         raise SystemExit(1)
     print("\n✓ 与官方 VR Playground 的坐标表 / 得分物清单全部吻合")
 
-    emit(stacks, loose)
+    groups = group_loose(loose)
+    n_multi = sum(1 for g in groups if len(g["pieces"]) > 1)
+    emit(stacks, groups)
     print(f"写出 {OUT}：{sum(len(v) for v in stacks.values())} 件在 goal 上，"
-          f"{len(loose)} 个散件")
+          f"{len(groups)} 组散件（其中 {n_multi} 组是「cup 里插着 pin」的组合）")
 
 
 if __name__ == "__main__":

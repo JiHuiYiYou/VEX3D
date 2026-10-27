@@ -119,6 +119,7 @@ function Scene({ onError }: { onError?: (msg: string) => void }) {
           if (!d) return
           if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5) {
             selectGoal(null)
+            useApp.getState().selectLoose(null)
             useApp.getState().selectItem(null)
             useApp.getState().setPending(null) // 手里的件放下了
           }
@@ -143,12 +144,14 @@ function Scene({ onError }: { onError?: (msg: string) => void }) {
  */
 function Controls() {
   const dragging = useApp((s) => s.dragging)
+  const viewLocked = useApp((s) => s.viewLocked)
   return (
     <OrbitControls
       ref={(c) => {
         if (c) sceneBridge.controls = c as unknown as typeof sceneBridge.controls
       }}
-      enabled={!dragging}
+      // ★ 锁定视角时相机完全不动（拖拽时也一样，免得转着转着把件甩掉）
+      enabled={!dragging && !viewLocked}
       enableDamping
       dampingFactor={0.08}
       minDistance={300}
@@ -167,8 +170,9 @@ export function FieldScene({ onError }: { onError?: (msg: string) => void }) {
     // near 不能太小：near=1 时在 5000 mm 处的深度精度约 1.6 mm，
     // 胶带（离地 2 mm）会和地面垫打架。near=50 → 精度 0.03 mm。
     const p = new THREE.PerspectiveCamera(45, 1, 50, 40000)
-    // 默认朝**西**看：相机在东侧（three +X = 场地东），画面左=南、右=北
-    p.position.set(4100, 3400, 0)
+    // ★ 默认朝**东**看：相机站在西侧（红方近场那一头），红近就在画面前景，
+    //   画面左 = 北、右 = 南（three +X = 场地东，+Z = 场地南）。
+    p.position.set(-4100, 3400, 0)
     p.lookAt(0, 0, 0)
     return p
   }, [])

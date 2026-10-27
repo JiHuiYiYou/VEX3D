@@ -29,38 +29,24 @@ export const dragPointer = {
 /** 指针移动多少像素才算「拖动」（而不是点击） */
 export const DRAG_THRESHOLD = 4
 
-/** 离 3D 画布边缘多少像素内算「靠近垃圾桶」 */
-export const TRASH_EDGE = 90
-
-export type EdgeSide = 'left' | 'right' | 'top' | 'bottom'
-
 /**
- * 指针到画布四条边的距离，以及最近的是哪条边。
+ * 右上角那个「删除」小方块（DOM 元素）。
  *
- * 注意用的是**画布**（3D 区域）的矩形，不是整个窗口 ——
- * 窗口左右各有一块面板，拿窗口当基准的话「左边缘」整块都在面板底下，
- * 垃圾桶根本露不出来。
+ * 删除手势统一成「拖到这个方块里」—— 不再是「拖到画布边缘」，
+ * 免得不小心就把件删了。拖拽控制器靠它判断松手时删不删。
  */
-export function edgeDistances(
-  clientX: number,
-  clientY: number,
-  rect: DOMRect,
-): {
-  left: number
-  right: number
-  top: number
-  bottom: number
-  nearest: number
-  side: EdgeSide
-} {
-  const left = clientX - rect.left
-  const right = rect.right - clientX
-  const top = clientY - rect.top
-  const bottom = rect.bottom - clientY
-  const nearest = Math.min(left, right, top, bottom)
-  const side: EdgeSide =
-    nearest === left ? 'left' : nearest === right ? 'right' : nearest === top ? 'top' : 'bottom'
-  return { left, right, top, bottom, nearest, side }
+export const trashSlot = {
+  el: null as HTMLElement | null,
+}
+
+/** 指针在不在「删除」方块里 */
+export function overTrashSlot(clientX: number, clientY: number): boolean {
+  const el = trashSlot.el
+  if (!el) return false
+  const r = el.getBoundingClientRect()
+  return (
+    clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom
+  )
 }
 
 export function resetDragPointer() {

@@ -1,6 +1,7 @@
 import { CUP_HEIGHT, GOAL_BY_ID, HALVES, PIN_HEIGHT, toThree } from '@/data/fieldSpec'
 import type { GoalSpec } from '@/data/fieldSpec'
 import type { StackItem } from '@/state/scoring'
+import type { LoosePiece } from '@/state/store'
 import { DEBUG } from '@/devTools'
 
 /**
@@ -152,6 +153,72 @@ export function nextBaseY(
   return kind === 'cup'
     ? top.baseY + PIN_WAIST + SEAT_EPS
     : top.baseY + NEST_ON_CUP + SEAT_EPS
+}
+
+/**
+ * 让局部 +Y（件的轴向）转到目标方向上的欧拉角（R3F 的 XYZ 序 = Rx·Ry·Rz）。
+ *
+ * 目标方向 v = (vx, vy, vz)：先绕 Z 转 α 把 +Y 带到 XZ 平面，再绕 X 转 β 压下去。
+ *   R_z(α)·(0,1,0) = (−sinα, cosα, 0)
+ *   R_x(β)·上面   = (−sinα, cosα·cosβ, cosα·sinβ)
+ */
+export function axisEuler(v: [number, number, number]): [number, number, number] {
+  const alpha = Math.atan2(-v[0], Math.hypot(v[1], v[2]))
+  const beta = Math.atan2(v[2], v[1])
+  return [beta, 0, alpha]
+}
+
+/**
+ * ★ 场上**一组**散件里每一段的落点（baseY = 该段底端离地高度，mm）。
+ *
+ * 一组就是「摞在垫子上」的一段段件，叠放规则跟 goal 上那摞一样：
+ *   · 底下一段站在垫子上（baseY = 0）；侧躺的那段按轴向算落在垫子上的高度
+ *   · 上面一段按嵌套关系往上套：
+ *       cup 放 pin 上 → cup 的下沿坐在 pin 的腰上（+ PIN_WAIST）
+ *       pin 放 cup 上 → pin 的腰坐在 cup 的上沿上（+ NEST_ON_CUP）
+ *
+ * 「cup 里插着 pin」= [cup(0), pin(0 + 82.0 + 0.3)] ✓
+ */
+export function layoutLooseGroup(
+  pieces: LoosePiece[],
+): { piece: LoosePiece; baseY: number }[] {
+  const out: { piece: LoosePiece; baseY: number }[] = []
+  for (const piece of pieces) {
+    const prev = out[out.length - 1]
+    let baseY: number
+    if (!prev) {
+      // 底下一段：侧躺的按轴算，竖直的站在垫子上
+      baseY = piece.axis
+        ? restingBaseY(piece.kind, piece.axis)
+        : 0
+    } else if (prev.piece.kind === 'pin' && piece.kind === 'cup') {
+      baseY = prev.baseY + PIN_WAIST + SEAT_EPS
+    } else if (prev.piece.kind === 'cup' && piece.kind === 'pin') {
+      baseY = prev.baseY + NEST_ON_CUP + SEAT_EPS
+    } else {
+      // 非法组合的兜底：不重叠
+      baseY = prev.baseY + (prev.piece.kind === 'pin' ? PIN_HEIGHT : CUP_HEIGHT)
+    }
+    out.push({ piece, baseY })
+  }
+  return out
+}
+
+/**
+ * 一组散件整体落在**某个高度**上时，各段的落点。
+ *
+ * 拖拽幽灵件用：把它举到 goal 的摞顶时，底下一段要落在摞顶的高度上，
+ * 上面几段跟着往上叠。
+ */
+export function layoutLooseGroupAt(
+  pieces: LoosePiece[],
+  baseY: number,
+): { piece: LoosePiece; baseY: number }[] {
+  const laid = layoutLooseGroup(pieces)
+  if (!laid.length) return []
+  const first = laid[0]
+  const dy = baseY - first.baseY
+  return laid.map((s) => ({ piece: s.piece, baseY: s.baseY + dy }))
 }
 
 // 暴露给端到端脚本（tools/verify_ui.py 断言嵌套偏移用；生产构建要 ?debug=1）

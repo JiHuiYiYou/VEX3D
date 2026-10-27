@@ -75,12 +75,21 @@ def main():
 
         # ── 2. 界面元素在不在 ───────────────────────────────
         check("顶栏存在", page.locator(".topbar").count() == 1)
-        check("左侧面板存在", page.locator(".panel-left").count() == 1)
+        check("左侧面板已删除（画布变大）", page.locator(".panel-left").count() == 0)
         check("计分板存在", page.locator(".panel-score").count() == 1)
-        # Toggle 面板已经搬到左栏了（点场上的 toggle 才出现），右栏不该再有
-        check("右栏不再有 Toggle 面板", page.locator(".panel-toggle").count() == 0)
-        check("右栏不再有 4 张 Toggle 卡片", page.locator(".toggle-card").count() == 0)
-        check("未选中时左侧是提示", page.locator(".panel-left .hint").count() >= 1)
+        # 右栏只有三块：实时计分 / 得分物 / 中场机器人数量
+        check("右栏是三块（计分 + 调色板 + 中场机器人数）",
+              page.locator(".left-col .panel").count() == 3)
+        check("调色板有 6 项（4 pin + 正反 2 个 cup）",
+              page.locator(".palette-item").count() == 6)
+        check("中场机器人数量常驻", page.locator(".panel-midfield").count() == 1)
+        check("规则说明抽屉已删除", page.locator(".rules-toggle").count() == 0)
+        check("Toggle 设置面板已删除（单击 toggle 直接翻色）",
+              page.locator(".toggle-color").count() == 0)
+        # 视角卡片只留两个 + 一个锁定按钮
+        view_labels = page.locator(".view-group").first.locator(".view-btn").all_inner_texts()
+        check("视角卡片只留 45° / 俯视", view_labels == ["45°", "俯视"], str(view_labels))
+        check("有视角锁定按钮", page.locator(".lock-btn").count() == 1)
 
         # 术语统一：页面上不该再出现「桩」「端子」「象限」
         body_text = page.evaluate("() => document.body.innerText")
@@ -88,6 +97,11 @@ def main():
         check("页面上没有旧词（桩/端子/象限）", not stale, f"还剩：{stale}")
 
         page.screenshot(timeout=300000, path=os.path.join(SHOTS, "01-overview.png"))
+
+        # ── 2a. 默认视角朝东（相机在西侧 = 红方近场那头）────
+        cam_pos = page.evaluate("() => window.__bridge.camera.position.toArray()")
+        check("默认相机在西侧、朝东看（红近在前景）",
+              cam_pos[0] < -3000 and abs(cam_pos[1]) > 1000, str([round(v) for v in cam_pos]))
 
         # ── 2b. 俯视图（用来和真实场地照片对表）─────────────
         page.evaluate(
@@ -104,19 +118,19 @@ def main():
         )
         time.sleep(1.0)
         page.screenshot(timeout=300000, path=os.path.join(SHOTS, "01b-topdown.png"))
-        # 视角复位
+        # 视角复位（回默认的朝东视角）
         page.evaluate(
             """() => {
               const b = window.__bridge;
               b.camera.up.set(0, 1, 0);
-              b.camera.position.set(0, 3900, 4100);
+              b.camera.position.set(-4100, 3400, 0);
               b.camera.lookAt(0, 0, 0);
               b.invalidate && b.invalidate();
             }"""
         )
         time.sleep(0.4)
 
-        # ── 2c. 点场上的 Toggle → 左侧弹它的设置 ──────────────
+        # ── 2c. 点场上的 Toggle → 直接翻一次颜色 ──────────────
         canvas = page.locator("canvas")
         box = canvas.bounding_box()
         toggle_pts = page.evaluate(
@@ -151,28 +165,41 @@ def main():
               len(toggle_mats) == 4 and all(c == "#ffd400" for c in toggle_mats),
               str(toggle_mats))
 
+        # ★ 循环顺序：红方半场（西墙·红近 + 南墙·红远）黄→蓝→红→黄；
+        #   蓝方半场（东墙·蓝近 + 北墙·蓝远）黄→红→蓝→黄。
+        for q, want in (("left", "blue"), ("bottom", "blue"), ("right", "red"), ("top", "red")):
+            page.evaluate(
+                """(q) => {
+                  const st = window.__vex3d.getState();
+                  st.setToggle('top','yellow'); st.setToggle('right','yellow');
+                  st.setToggle('bottom','yellow'); st.setToggle('left','yellow');
+                  st.cycleToggle(q);
+                }""",
+                q,
+            )
+            time.sleep(0.15)
+            got = page.evaluate("(q) => window.__vex3d.getState().toggles[q]", q)
+            check(f"toggle 循环顺序（{q} 第一次翻 → {want}）", got == want, f"得到 {got}")
+        # 翻满一圈回到黄色
+        for _ in range(3):
+            page.evaluate("(q) => window.__vex3d.getState().cycleToggle(q)", "left")
+        back = page.evaluate("() => window.__vex3d.getState().toggles.left")
+        check("toggle 翻三次回到黄色（黄→蓝→红→黄）", back == "yellow", f"得到 {back}")
+
         if toggle_pts:
             # 只点画面内的那一个（画布太窄时有些 toggle 会投到画布外）
             inside = [p for p in toggle_pts
                       if box["x"] + 5 < p[0] < box["x"] + box["width"] - 5
                       and box["y"] + 5 < p[1] < box["y"] + box["height"] - 5]
             if inside:
+                before_toggles = page.evaluate("() => JSON.stringify(window.__vex3d.getState().toggles)")
                 page.mouse.click(inside[0][0], inside[0][1])
                 time.sleep(0.6)
-                sel_toggle = page.evaluate("() => window.__vex3d.getState().selectedToggleId")
-                check("点 3D 上的 toggle → 左侧出现它的设置",
-                      sel_toggle is not None and page.locator(".toggle-color").count() == 3,
-                      f"selectedToggleId={sel_toggle}")
-                check("左栏显示三个颜色（红/蓝/黄）",
-                      page.locator(".toggle-color").count() == 3)
-                page.screenshot(timeout=300000,
-                               path=os.path.join(SHOTS, "02b-toggle.png"))
-
-                # 点「红」→ 只有这一个 toggle 变
-                before_toggles = page.evaluate("() => JSON.stringify(window.__vex3d.getState().toggles)")
-                page.locator(".toggle-color.state-red").click()
-                time.sleep(0.5)
                 after_toggles = page.evaluate("() => JSON.stringify(window.__vex3d.getState().toggles)")
+                changed = [q for q in ("top", "right", "bottom", "left")
+                           if page.evaluate("(q) => window.__vex3d.getState().toggles[q]", q) != "yellow"]
+                check("单击 3D 上的 toggle → 颜色翻一次（只翻这一个）",
+                      len(changed) == 1 and before_toggles != after_toggles, f"变了的是 {changed}")
                 after_mats = page.evaluate(
                     """() => {
                       const s = window.__bridge.scene; const out = [];
@@ -183,51 +210,79 @@ def main():
                       return out;
                     }"""
                 )
-                changed = [q for q in ("top", "right", "bottom", "left")
-                           if page.evaluate("(q) => window.__vex3d.getState().toggles[q]", q) == "red"]
-                check("点红之后只有被点的那个 toggle 变了",
-                      changed == [sel_toggle], f"变红的是 {changed}（点的 {sel_toggle}）")
-                check("3D 上那根 toggle 也变红了",
-                      after_mats.count("#e4002b") == 1, str(after_mats))
-                check("其它三个 toggle 没动",
-                      before_toggles != after_toggles and after_mats.count("#ffd400") == 3,
-                      f"{before_toggles} → {after_toggles}")
+                check("3D 上那根 toggle 的颜色跟着变",
+                      after_mats.count("#ffd400") == 3, str(after_mats))
+                check("单击 toggle 不再弹设置面板", page.locator(".toggle-color").count() == 0)
+                page.screenshot(timeout=300000,
+                               path=os.path.join(SHOTS, "02b-toggle.png"))
                 # 复位
                 page.evaluate(
                     """() => {
                       const st = window.__vex3d.getState();
                       st.setToggle('top','yellow'); st.setToggle('right','yellow');
                       st.setToggle('bottom','yellow'); st.setToggle('left','yellow');
-                      st.selectToggle(null);
                     }"""
                 )
                 time.sleep(0.4)
 
+        # ── 2d. 视角锁定 ────────────────────────────────────
+        page.locator(".lock-btn").click()
+        time.sleep(0.4)
+        locked = page.evaluate("() => window.__vex3d.getState().viewLocked")
+        check("点锁定按钮 → 视角被锁住", locked is True)
+        cam_before = page.evaluate("() => window.__bridge.camera.position.toArray()")
+        # 拖画布左上角的空白处（那儿没有 goal / 散件，拖到的是相机）
+        ox, oy = box["x"] + 60, box["y"] + 60
+        page.mouse.move(ox, oy)
+        page.mouse.down()
+        page.mouse.move(ox + 160, oy + 40, steps=8)
+        page.mouse.up()
+        time.sleep(0.5)
+        cam_after = page.evaluate("() => window.__bridge.camera.position.toArray()")
+        check("锁住之后相机拖不动",
+              abs(cam_after[0] - cam_before[0]) < 1 and abs(cam_after[1] - cam_before[1]) < 1,
+              f"{[round(v) for v in cam_before]} → {[round(v) for v in cam_after]}")
+        page.locator(".lock-btn").click()
+        time.sleep(0.3)
+        check("再点一次解锁",
+              page.evaluate("() => window.__vex3d.getState().viewLocked") is False)
+
         # ── 3. 找出一个 Goal 并点击 ──────────────────────────
         found = None
-        # 扫描画布，找能让左侧面板切到调色板的位置
-        cx, cy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
-        offsets = []
-        for r in (60, 110, 160, 210, 260, 310):
-            for a in range(0, 360, 20):
-                offsets.append((r * __import__("math").cos(__import__("math").radians(a)),
-                                r * __import__("math").sin(__import__("math").radians(a))))
-        for dx, dy in offsets:
-            px, py = cx + dx, cy + dy
-            if not (box["x"] < px < box["x"] + box["width"] and box["y"] < py < box["y"] + box["height"]):
+        # ★ 直接把 9 个 goal 投影到屏幕坐标再点（比盲扫靠谱 ——
+        #   goal 在屏幕上只有 ~13 px 宽，盲扫很容易点空，还会误点到围栏上的 toggle）
+        goal_pts = page.evaluate(
+            """() => {
+              const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+              const r = b.domElement.getBoundingClientRect();
+              return (window.__goalPositions || []).map(g => {
+                const v = new b.camera.position.constructor(g.pos[0], g.pos[1], g.pos[2]);
+                v.project(b.camera);
+                return {id: g.id,
+                        pt: [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height]};
+              });
+            }"""
+        )
+        for g in goal_pts:
+            px, py = g["pt"]
+            if not (box["x"] + 4 < px < box["x"] + box["width"] - 4
+                    and box["y"] + 4 < py < box["y"] + box["height"] - 4):
                 continue
             page.mouse.click(px, py)
-            time.sleep(0.12)
-            # 调色板现在是**一直显示**的，所以不能拿「调色板出现了」当「点中 goal 了」的证据，
-            # 要看 store 里到底选中了哪个 goal
-            if page.evaluate("() => !!window.__vex3d.getState().selectedGoalId"):
+            time.sleep(0.2)
+            sel = page.evaluate("() => window.__vex3d.getState().selectedGoalId")
+            if sel == g["id"]:
                 found = (px, py)
                 break
         check("点击场上的 goal 确实选中了它", found is not None,
-              f"点击位置 {found}" if found else "扫描了整个画布都没点中 goal")
-        check("左侧调色板有 6 项（4 pin + 正反 2 个 cup）",
+              f"点击位置 {found}" if found else "一个 goal 都没点中")
+        cx, cy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+        check("右栏调色板有 6 项（4 pin + 正反 2 个 cup）",
               page.locator(".palette-item").count() == 6)
         check("有「翻转 pin」按钮", page.locator(".flip-btn").count() == 1)
+        check("计分板只留两个大分数（没有逐项明细）",
+              page.evaluate("() => document.querySelectorAll('.score-cell').length") == 2
+              and page.evaluate("() => document.querySelectorAll('.half-row').length") == 0)
 
         if found:
             page.screenshot(timeout=300000, path=os.path.join(SHOTS, "02-palette.png"))
@@ -263,10 +318,20 @@ def main():
                     "() => Object.values(window.__vex3d.getState().stacks).flat().length"
                 )
 
+            def score_total():
+                return page.evaluate(
+                    """() => {
+                      const r = document.querySelector('.score-cell.red .score-num').textContent;
+                      const b = document.querySelector('.score-cell.blue .score-num').textContent;
+                      return Number(r) + Number(b);
+                    }"""
+                )
+
             def drop_target():
                 return page.evaluate("() => window.__vex3d.getState().dropTarget")
 
             n0 = stack_len()
+            s0 = score_total()
 
             # 非法①：Cup 直接放到空桩上 → 应被拒绝
             drag_to(page.locator(".palette-item").nth(4), found[0], found[1], hold=True)
@@ -293,24 +358,33 @@ def main():
                   bool(dt) and dt.get("legal") is False, str(dt))
             page.screenshot(timeout=300000, path=os.path.join(SHOTS, "04b-illegal-drop.png"))
             page.mouse.up()
+            # 提示条只挂 2.4 秒 → 轮询着抓，别在「count 到还在」和「读文本」之间
+            # 被它消失掉（软渲染下这两步能隔好几秒）
+            hint_text = ""
+            for _ in range(30):
+                hint_text = page.evaluate(
+                    """() => {
+                      const el = document.querySelector('.place-hint');
+                      return el ? el.innerText : '';
+                    }"""
+                )
+                if hint_text:
+                    break
+                time.sleep(0.08)
             time.sleep(0.5)
             n_rej = stack_len()
             check("空 goal 上放 cup 被拒绝（件数不变）", n_rej == n0, f"{n0} → {n_rej}")
-            hint = page.locator(".place-hint")
-            hint_text = hint.inner_text() if hint.count() else ""
             check("拒绝时给出中文提示", bool(hint_text) and "cup" in hint_text.lower(), hint_text)
-            check("被拒绝后计分板没有条目",
-                  page.evaluate("() => document.querySelectorAll('.half-row').length") == 0)
+            check("被拒绝后分数没变", score_total() == s0, f"{s0} → {score_total()}")
 
             # 合法①：Pin 放到空桩上
             drag_to(page.locator(".palette-item").first, found[0], found[1])
             n1 = stack_len()
             check("拖放后 goal 上多了一件", n1 == n0 + 1, f"{n0} → {n1}")
 
-            placed = page.evaluate("() => document.querySelectorAll('.half-row').length")
-            dots = page.evaluate("() => document.querySelectorAll('.half-row .dot').length")
-            check("计分板一行一个 pin（两个色点 = 上下两半）",
-                  placed == 1 and dots == 2, f"{placed} 行 / {dots} 个色点")
+            s1 = score_total()
+            check("放上去之后实时计分加了（半个 pin = 5 分）",
+                  s1 == s0 + 5, f"{s0} → {s1}")
             page.screenshot(timeout=300000, path=os.path.join(SHOTS, "03-placed.png"))
 
             # 非法②：Pin 叠到 Pin 上 → 应被拒绝
@@ -351,22 +425,46 @@ def main():
                   ok_nest, f"baseY = {layout}")
             page.screenshot(timeout=300000, path=os.path.join(SHOTS, "04c-nested.png"))
 
-        # ── 7. 切 Toggle 会改分（现在是从左侧面板切）────────
-        # 先在中场放一个黄色 pin：它归「中场机器人数多的一方」，
-        # 再看切换一个区域的 toggle 会不会影响黄色 pin 的归属。
-        before_score = page.evaluate(
-            "() => document.querySelector('.score-cell.red .score-num').textContent"
+        # ── 7. 切 Toggle 会改分（黄色 pin 归该区域 toggle 的颜色）──
+        # 在「红近」区域（西墙那个 toggle 管着的 g-n2）放一根黄/黄 pin，
+        # 再把那个 toggle 翻成红色 → 黄半归红方（+10）。
+        page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              st.setToggle('left', 'yellow');           // 先摆成「没人拥有」
+              window.__vex3d.setState({ stacks: { ...st.stacks, 'g-n2': [
+                { id: 'yy' + Math.random(), kind: 'pin', halves: ['yellow', 'yellow'] }
+              ] } });
+            }"""
         )
-        if page.locator(".toggle-color").count() == 3:
-            page.locator(".toggle-color.state-blue").click()
-            time.sleep(0.4)
-        after_score = page.evaluate(
+        time.sleep(0.4)
+        red_before = int(page.evaluate(
             "() => document.querySelector('.score-cell.red .score-num').textContent"
+        ))
+        # 西墙（红近）：黄 → 蓝 → 红
+        page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              st.cycleToggle('left'); st.cycleToggle('left');
+            }"""
         )
-        check("切换 toggle 后计分板有响应", before_score != after_score or True,
-              f"红方 {before_score} → {after_score}")
+        time.sleep(0.5)
+        red_after = int(page.evaluate(
+            "() => document.querySelector('.score-cell.red .score-num').textContent"
+        ))
+        check("把区域的 toggle 翻成红色 → 该区域的黄色 pin 归红方（+10）",
+              red_after - red_before == 10, f"红方 {red_before} → {red_after}")
+        # 复位
+        page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              st.setToggle('left', 'yellow');
+              window.__vex3d.setState({ stacks: { ...st.stacks, 'g-n2': [] } });
+            }"""
+        )
+        time.sleep(0.3)
 
-        # ── 8. 垃圾桶：把已放置的件拖到屏幕边缘 ─────────────
+        # ── 8. 删除手势：拖到右上角那个红色小方块 ───────────
         trash_seen = False
         deleted = False
         trash_info = {"found": False}   # 找不到件时也别让脚本崩（下面要用它报错）
@@ -403,95 +501,71 @@ def main():
                 before = page.evaluate(
                     "() => Object.values(window.__vex3d.getState().stacks).flat().length"
                 )
-                # 拖到 **3D 画布** 的左边缘（不是窗口边缘 —— 窗口左边是面板）
-                edge_x = box["x"] + 30
                 page.mouse.move(item_pt[0], item_pt[1])
                 page.mouse.down()
-                # 先停在画布中间：此时四周应该是「均匀的淡红晕」，没有垃圾桶
                 page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=8)
-                time.sleep(0.25)
-                mid_glow = page.evaluate(
+                time.sleep(0.35)
+                slot = page.evaluate(
                     """() => {
-                      const g = document.querySelector('.trash-glow');
-                      const b = document.querySelector('.trash-zone');
-                      if (!g) return null;
-                      const cs = getComputedStyle(g);
-                      return {opacity: cs.opacity, glow: cs.getPropertyValue('--glow').trim(),
-                              hot: cs.getPropertyValue('--hot').trim(),
-                              bin: b ? getComputedStyle(b).opacity : 'none',
-                              binInline: b ? b.style.opacity : 'none'};
+                      const el = document.querySelector('.trash-slot');
+                      if (!el) return null;
+                      const r = el.getBoundingClientRect();
+                      return {left: r.left, top: r.top, right: r.right, bottom: r.bottom,
+                              w: Math.round(r.width), h: Math.round(r.height)};
                     }"""
                 )
-                check(
-                    "拖拽中（未靠边）也有四周的淡红光、垃圾桶不显示",
-                    bool(mid_glow)
-                    and float(mid_glow["opacity"]) > 0.9
-                    and 0.05 < float(mid_glow["glow"]) < 0.25
-                    and float(mid_glow["hot"]) < 0.2
-                    and mid_glow["binInline"] == "0",
-                    str(mid_glow),
-                )
+                trash_info = {"found": bool(slot), **(slot or {})}
+                check("拖拽时画布右上角出现删除方块", bool(slot), str(trash_info))
+                check("方块是个小正方形", bool(slot) and 40 < slot["w"] < 90
+                      and 40 < slot["h"] < 90, str(slot))
+                check("画布四周不再有红光（老手势已删）",
+                      page.evaluate("() => document.querySelectorAll('.trash-glow').length") == 0)
                 page.screenshot(timeout=300000, path=os.path.join(SHOTS, "05a-dragging.png"))
-                # 再拖到边缘
-                page.mouse.move(edge_x, item_pt[1], steps=10)
-                time.sleep(0.3)
-                # 先截图：会强制 paint，把淡入过渡推进（软渲染只有 ~5fps，
-                # 不先 paint 的话 getComputedStyle 读到的还是过渡起点）
-                page.screenshot(timeout=300000, path=os.path.join(SHOTS, "05-trash.png"))
-                trash_info = page.evaluate(
-                    """() => {
-                      const b = document.querySelector('.trash-zone');
-                      if (!b) return {found: false};
-                      return {found: true, inline: b.style.opacity,
-                              computed: getComputedStyle(b).opacity,
-                              count: document.querySelectorAll('.trash-zone').length};
-                    }"""
-                )
-                trash_seen = (
-                    trash_info.get("found")
-                    and trash_info.get("inline") == "1"
-                    and float(trash_info.get("computed", 0)) > 0.3
-                )
-                glow = page.evaluate(
-                    """() => {
-                      const g = document.querySelector('.trash-glow');
-                      if (!g) return null;
-                      const cs = getComputedStyle(g);
-                      return {opacity: cs.opacity, glow: cs.getPropertyValue('--glow').trim(),
-                              hot: cs.getPropertyValue('--hot').trim(),
-                              dir: cs.getPropertyValue('--dir').trim()};
-                    }"""
-                )
-                glow_ok = (
-                    bool(glow)
-                    and float(glow["opacity"]) > 0.9
-                    and float(glow["glow"]) > 0.15
-                    and float(glow["hot"]) > 0.3
-                )
-                check("拖到画布边缘时四周浮起红光", glow_ok, str(glow))
-                page.mouse.up()
-                time.sleep(0.4)
-                after = page.evaluate(
-                    "() => Object.values(window.__vex3d.getState().stacks).flat().length"
-                )
-                deleted = after < before
-                check(
-                    "丢进垃圾桶后该件被删除",
-                    deleted,
-                    f"{before} → {after} 件",
-                )
-        check("拖到画布边缘时出现红色垃圾桶", trash_seen, str(trash_info))
+                if slot:
+                    tx = (slot["left"] + slot["right"]) / 2
+                    ty = (slot["top"] + slot["bottom"]) / 2
+                    page.mouse.move(tx, ty, steps=10)
+                    time.sleep(0.4)
+                    # 先截图：会强制 paint，把过渡推进（软渲染只有 ~5fps）
+                    page.screenshot(timeout=300000, path=os.path.join(SHOTS, "05-trash.png"))
+                    over = page.evaluate(
+                        "() => { const el = document.querySelector('.trash-slot');"
+                        " return !!el && el.classList.contains('over'); }"
+                    )
+                    trash_seen = bool(over)
+                    check("指针进方块时它会高亮", over)
+                    page.mouse.up()
+                    time.sleep(0.5)
+                    after = page.evaluate(
+                        "() => Object.values(window.__vex3d.getState().stacks).flat().length"
+                    )
+                    deleted = after < before
+                    check("丢进方块后该件被删除", deleted, f"{before} → {after} 件")
+        check("右上角的删除方块能删东西", trash_seen and deleted, str(trash_info))
 
-        # ── 8a. 中场：点中场的 goal → 左侧有「中场机器人数量」 ──
+        # ── 8a. 中场机器人数量（常驻在右栏）──────────────────
         page.evaluate("() => window.__vex3d.getState().selectGoal('g-center')")
         time.sleep(0.5)
-        check("点中场的 goal → 左侧出现「中场机器人数量」",
-              page.locator(".midfield-counts").count() == 1)
+        check("右栏常驻「中场机器人数量」", page.locator(".panel-midfield").count() == 1)
         # 改数量 → store 跟着变
         page.evaluate("() => window.__vex3d.getState().setMidfieldCounts(1, 0)")
         time.sleep(0.3)
         counts = page.evaluate("() => JSON.stringify(window.__vex3d.getState().midfieldCounts)")
         check("中场机器人数能改", '"red":1' in counts and '"blue":0' in counts, counts)
+
+        # 每台位于中场的机器人 8 分 → 算进总分
+        red_with = int(page.evaluate(
+            "() => document.querySelector('.score-cell.red .score-num').textContent"
+        ))
+        page.evaluate("() => window.__vex3d.getState().setMidfieldCounts(0, 0)")
+        time.sleep(0.4)
+        red_without = int(page.evaluate(
+            "() => document.querySelector('.score-cell.red .score-num').textContent"
+        ))
+        check("中场机器人的 8 分算进总分",
+              red_with - red_without == 8, f"红方 {red_with} → {red_without}")
+        page.evaluate("() => window.__vex3d.getState().setMidfieldCounts(1, 0)")
+        time.sleep(0.3)
 
         # 每方只有 2 台机器人 → 封顶
         page.evaluate("() => window.__vex3d.getState().setMidfieldCounts(9, -3)")
@@ -533,11 +607,6 @@ def main():
         # 所以这里的增量只是中场黄半的 10 分
         check("中场机器人数多的那方拥有中场的黄色 pin",
               red_score - red_before == 10, f"红方 +{red_score - red_before} 分（应为 10）")
-        # 计分板上要能看到这 8 分的明细
-        board = page.locator(".score-note").inner_text()
-        check("计分板列出中场机器人的得分",
-              "中场机器人" in board and "8" in board,
-              " ".join(board.split()))
         page.evaluate(
             """() => {
               const st = window.__vex3d.getState();
@@ -674,24 +743,27 @@ def main():
                        [-600,0],[600,0],
                        [-1745,-600],[-600,-600],[0,-600],[600,-600],[1745,-600],
                        [-1200,-1200],[1200,-1200],[-600,-1745],[600,-1745]];
-          const pieces = st.loose.map(x => ({x: x.x, y: x.y}));
+          // 散件现在按**组**存：一组 = 一个整体（可能是「cup 里插着 pin」）
+          const groups = st.loose;
+          const all = groups.flatMap(g => g.pieces.map(p => ({...p, gx: g.x, gy: g.y})));
           const gpsHit = GPS.map(([px, py]) => {
-            const d = Math.min(...pieces.map(p => Math.hypot(p.x - px, p.y - py)));
+            const d = Math.min(...groups.map(g => Math.hypot(g.x - px, g.y - py)));
             return Math.round(d * 10) / 10;
           });
-          const onField = st.loose.filter(x => Math.abs(x.x) < 1900 && Math.abs(x.y) < 1900);
+          const onField = all.filter(p => Math.abs(p.gx) < 1900 && Math.abs(p.gy) < 1900);
           return {
             stacks,
-            loose: st.loose.length,
-            inField: onField.length,
-            inStage: st.loose.filter(x => Math.abs(x.x) > 1900).length,
-            lying: st.loose.filter(x => x.axis).length,
-            nested: st.loose.filter(x => x.nested).length,
+            groups: groups.length,
+            pieces: all.length,
+            inField: groups.filter(g => Math.abs(g.x) < 1900 && Math.abs(g.y) < 1900).length,
+            inStage: groups.filter(g => Math.abs(g.x) > 1900).length,
+            lying: groups.filter(g => g.pieces.some(p => p.axis)).length,
+            nested: groups.filter(g => g.pieces.length > 1).length,
             gpsHit,
             // 场上 pin = 散件里的 + 5 个中立 goal 上的（4 个中立 + 中场）
-            pinsOnField: onField.filter(x => x.kind === 'pin').length
+            pinsOnField: onField.filter(p => p.kind === 'pin').length
                           + Object.keys(stacks).length,
-            cupsOnField: onField.filter(x => x.kind === 'cup').length,
+            cupsOnField: onField.filter(p => p.kind === 'cup').length,
           };
         }""")
         check("摆场：4 个中立 goal + 中场各一根 pin，4 个联盟 goal 空着",
@@ -699,15 +771,15 @@ def main():
               str(setup["stacks"]))
         check("摆场：官方数量 —— 场上 37 根 pin + 36 个 cup，装填区 46 件",
               setup["pinsOnField"] == 37 and setup["cupsOnField"] == 36
-              and setup["loose"] == 114 and setup["inStage"] == 46,
+              and setup["pieces"] == 114 and setup["inStage"] == 46,
               f"场上 {setup['pinsOnField']} pin / {setup['cupsOnField']} cup，"
-              f"散件共 {setup['loose']}（装填区 {setup['inStage']}）")
+              f"散件共 {setup['pieces']} 件 / {setup['groups']} 组（装填区 {setup['inStage']}）")
         check("摆场：20 个官方 GPS 落位上都有东西（≤ 6 mm）",
               max(setup["gpsHit"]) <= 6.0,
               f"最大偏差 {max(setup['gpsHit'])} mm")
-        check("摆场：16 根侧躺的 pin + 16 根插在 cup 里的 pin",
+        check("摆场：16 根侧躺的 pin + 16 组「cup 里插着 pin」",
               setup["lying"] == 16 and setup["nested"] == 16,
-              f"躺 {setup['lying']} / 插 {setup['nested']}")
+              f"躺 {setup['lying']} / 组合 {setup['nested']}")
         page.screenshot(timeout=300000, path=os.path.join(SHOTS, "07-setup.png"))
 
         # 单击散件 = 选中（并端起来）：不能把它挪走，更不能删掉
@@ -718,13 +790,14 @@ def main():
               const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
               const r = b.domElement.getBoundingClientRect();
               const out = [];
-              for (const x of st.loose) {
-                // 找「孤零零」的散件（附近没有别的件，免得点到邻居身上）
-                if (x.nested || x.axis) continue;
-                if (st.loose.some(o => o !== x && Math.abs(o.x - x.x) < 60 && Math.abs(o.y - x.y) < 60)) continue;
-                const v = new b.camera.position.constructor(x.x, 40, -x.y);
+              for (const g of st.loose) {
+                // 找「孤零零」的散件组（只有一段、没侧躺；附近也没有别的组）
+                if (g.pieces.length > 1) continue;
+                if (g.pieces[0].axis) continue;
+                if (st.loose.some(o => o !== g && Math.abs(o.x - g.x) < 60 && Math.abs(o.y - g.y) < 60)) continue;
+                const v = new b.camera.position.constructor(g.x, 40, -g.y);
                 v.project(b.camera);
-                out.push({ id: x.id, x: x.x, y: x.y, n: st.loose.length,
+                out.push({ id: g.id, piece: g.pieces[0].id, x: g.x, y: g.y, n: st.loose.length,
                            pt: [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height] });
                 if (out.length >= 40) break;
               }
@@ -747,15 +820,17 @@ def main():
             after_click = page.evaluate(
                 """(id) => {
                   const st = window.__vex3d.getState();
-                  const it = st.loose.find(x => x.id === id);
+                  const g = st.loose.find(x => x.id === id);
                   return { n: st.loose.length, sel: st.selectedItemId,
-                           x: it ? it.x : null, y: it ? it.y : null };
+                           loose: st.selectedLooseId,
+                           x: g ? g.x : null, y: g ? g.y : null };
                 }""",
                 click_res["id"],
             )
             check("单击散件只是选中，不会挪走或删掉",
                   after_click["n"] == click_res["n"]
-                  and after_click["sel"] == click_res["id"]
+                  and after_click["sel"] == click_res["piece"]
+                  and after_click["loose"] == click_res["id"]
                   and after_click["x"] == click_res["x"]
                   and after_click["y"] == click_res["y"],
                   f"{click_res['id']} @({click_res['x']:.0f},{click_res['y']:.0f}) → {after_click}")
@@ -790,13 +865,14 @@ def main():
                 if (inCanvas(pt)) { goal = { id, pt }; break; }
               }
               if (!goal) return null;
-              for (const x of st.loose) {
-                if (x.kind !== 'pin' || x.nested || x.axis) continue;
+              for (const g of st.loose) {
+                const p = g.pieces[0];
+                if (g.pieces.length !== 1 || p.kind !== 'pin' || p.axis) continue;
                 // 周围没有别的件 → 点到的就是这个 pin（不是被挡住的邻居）
-                if (st.loose.some(o => o !== x && Math.abs(o.x - x.x) < 120 && Math.abs(o.y - x.y) < 120)) continue;
-                const pt = project(x.x, x.y, 40);
+                if (st.loose.some(o => o !== g && Math.abs(o.x - g.x) < 120 && Math.abs(o.y - g.y) < 120)) continue;
+                const pt = project(g.x, g.y, 40);
                 if (!inCanvas(pt)) continue;
-                return { id: x.id, n: st.loose.length, pt, gpt: goal.pt, gid: goal.id };
+                return { id: g.id, n: st.loose.length, pt, gpt: goal.pt, gid: goal.id };
               }
               return null;
             }"""
@@ -846,7 +922,7 @@ def main():
             check("goal 上已经有得分物时，端着的件照样放上去（叠在摞顶）",
                   placed2["g"] == 2 and not placed2["pending"], f"{pick['gid']} → {placed2}")
 
-        # 散件能删：拖一个到画布边缘
+        # 散件能删：拖一个到右上角的删除方块
         loose_before = page.evaluate("() => window.__vex3d.getState().loose.length")
         loose_pt = page.evaluate(
             """() => {
@@ -854,9 +930,9 @@ def main():
               const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
               const r = b.domElement.getBoundingClientRect();
               // 挑一个**投影落在画布里**的散件（画布只有 ~500 px 宽，边缘的件会投到面板底下）
-              for (const it of st.loose) {
-                if (Math.abs(it.x) > 1900 || Math.abs(it.y) > 1900) continue;
-                const v = new b.camera.position.constructor(it.x, 40, -it.y);
+              for (const g of st.loose) {
+                if (Math.abs(g.x) > 1900 || Math.abs(g.y) > 1900) continue;
+                const v = new b.camera.position.constructor(g.x, 40, -g.y);
                 v.project(b.camera);
                 const pt = [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
                 if (pt[0] > r.left+15 && pt[0] < r.right-15 && pt[1] > r.top+15 && pt[1] < r.bottom-15) {
@@ -869,13 +945,28 @@ def main():
         if loose_pt:
             page.mouse.move(loose_pt[0], loose_pt[1])
             page.mouse.down()
-            page.mouse.move(box["x"] + 30, loose_pt[1], steps=8)
-            time.sleep(0.3)
-            page.mouse.up()
-            time.sleep(0.5)
-            loose_after = page.evaluate("() => window.__vex3d.getState().loose.length")
-            check("散件能拖到边缘删除", loose_after == loose_before - 1,
-                  f"{loose_before} → {loose_after}")
+            page.mouse.move(loose_pt[0] + 50, loose_pt[1] + 15, steps=5)
+            time.sleep(0.4)
+            slot = page.evaluate(
+                """() => {
+                  const el = document.querySelector('.trash-slot');
+                  if (!el) return null;
+                  const r = el.getBoundingClientRect();
+                  return {x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2};
+                }"""
+            )
+            check("拖散件时右上角出现删除方块", slot is not None, str(slot))
+            if slot:
+                page.mouse.move(slot["x"], slot["y"], steps=10)
+                time.sleep(0.4)
+                page.mouse.up()
+                time.sleep(0.5)
+                loose_after = page.evaluate("() => window.__vex3d.getState().loose.length")
+                check("散件能拖到右上角删除", loose_after == loose_before - 1,
+                      f"{loose_before} → {loose_after}")
+            else:
+                page.mouse.up()
+                time.sleep(0.3)
 
         # 散件能进 goal 的摞：空的联盟 goal 能放 pin；摞顶是 pin 时 cup 放不进去
         goal_ok = page.evaluate(
@@ -897,6 +988,212 @@ def main():
               bool(goal_ok) and goal_ok["mid"] == goal_ok["before"] + 1
               and goal_ok["after"] == goal_ok["mid"]
               and goal_ok["afterCup"] == goal_ok["after"] + 1, str(goal_ok))
+
+        # ── 8e. 散件组：手动组合 / 手动拆分 ─────────────────
+        combo = page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              // 找两个单独的组：一个 cup + 一个 pin（组合起来是合法的）
+              const cups = st.loose.filter(g => g.pieces.length === 1
+                                   && g.pieces[0].kind === 'cup' && !g.pieces[0].axis);
+              const pins = st.loose.filter(g => g.pieces.length === 1
+                                   && g.pieces[0].kind === 'pin' && !g.pieces[0].axis);
+              if (!cups.length || !pins.length) return null;
+              return {cup: cups[0].id, pin: pins[0].id, n: st.loose.length};
+            }"""
+        )
+        if combo:
+            ok = page.evaluate(
+                """(ids) => {
+                  const st = window.__vex3d.getState();
+                  const done = st.combineLoose(ids.cup, ids.pin);
+                  const after = window.__vex3d.getState();
+                  const g = after.loose.find(x => x.id === ids.cup);
+                  return {done, n: after.loose.length,
+                          pieces: g ? g.pieces.length : 0,
+                          kinds: g ? g.pieces.map(p => p.kind) : []};
+                }""",
+                combo,
+            )
+            check("手动组合：cup + pin → 合成一组（拖一个到另一个上的效果）",
+                  ok["done"] and ok["n"] == combo["n"] - 1 and ok["pieces"] == 2
+                  and ok["kinds"] == ["cup", "pin"], str(ok))
+
+            # ★ 真·拖拽手势：把一个散件**拖到**另一个散件上 → 合成一组
+            gesture = page.evaluate(
+                """() => {
+                  const st = window.__vex3d.getState();
+                  const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+                  const r = b.domElement.getBoundingClientRect();
+                  const project = (x, y, z) => {
+                    const v = new b.camera.position.constructor(x, z, -y);
+                    v.project(b.camera);
+                    return [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+                  };
+                  const inCanvas = (pt) => pt[0] > r.left+40 && pt[0] < r.right-40
+                                        && pt[1] > r.top+40 && pt[1] < r.bottom-40;
+                  const goals = (window.__goalPositions||[]).map(g => [g.pos[0], -g.pos[2]]);
+                  const nearGoal = (x, y) => goals.some(g => Math.hypot(g[0]-x, g[1]-y) < 260);
+                  const cups = st.loose.filter(g => g.pieces.length === 1
+                                       && g.pieces[0].kind === 'cup' && !g.pieces[0].axis);
+                  const pins = st.loose.filter(g => g.pieces.length === 1
+                                       && g.pieces[0].kind === 'pin' && !g.pieces[0].axis);
+                  for (const c of cups) {
+                    if (nearGoal(c.x, c.y)) continue;
+                    for (const p of pins) {
+                      if (nearGoal(p.x, p.y)) continue;
+                      const cp = project(c.x, c.y, 40), pp = project(p.x, p.y, 40);
+                      if (!inCanvas(cp) || !inCanvas(pp)) continue;
+                      if (Math.hypot(cp[0]-pp[0], cp[1]-pp[1]) < 70) continue;
+                      return {cup: c.id, pin: p.id, n: st.loose.length, cp, pp};
+                    }
+                  }
+                  return null;
+                }"""
+            )
+            if gesture:
+                page.mouse.move(gesture["pp"][0], gesture["pp"][1])
+                page.mouse.down()
+                page.mouse.move(gesture["pp"][0] + 20, gesture["pp"][1] + 8, steps=4)
+                time.sleep(0.25)
+                page.mouse.move(gesture["cp"][0], gesture["cp"][1], steps=12)
+                time.sleep(0.4)
+                hover = page.evaluate("() => window.__vex3d.getState().hoverLooseId")
+                check("拖到另一个散件上时，鼠标下的那组被认出来", hover == gesture["cup"],
+                      f"hover={hover} 目标={gesture['cup']}")
+                page.mouse.up()
+                time.sleep(0.5)
+                merged = page.evaluate(
+                    """(ids) => {
+                      const st = window.__vex3d.getState();
+                      const g = st.loose.find(x => x.id === ids.cup);
+                      return {n: st.loose.length,
+                              pieces: g ? g.pieces.length : 0,
+                              kinds: g ? g.pieces.map(p => p.kind) : []};
+                    }""",
+                    gesture,
+                )
+                check("把散件拖到另一个散件上 → 真的合成一组了",
+                      merged["n"] == gesture["n"] - 1 and merged["pieces"] == 2
+                      and merged["kinds"] == ["cup", "pin"], str(merged))
+            else:
+                check("把散件拖到另一个散件上 → 真的合成一组了", False, "找不到合适的两个散件")
+
+            # 拆分：选中它 → 右栏出现「拆分」→ 点一下 → 变回两个独立的组
+            page.evaluate(
+                "(id) => { const st = window.__vex3d.getState(); st.selectLoose(id); }",
+                combo["cup"],
+            )
+            time.sleep(0.5)
+            check("选中的组能拆（右栏出现「拆分」）",
+                  page.locator(".act-btn", has_text="拆分").count() == 1)
+            n_before_split = page.evaluate("() => window.__vex3d.getState().loose.length")
+            split_pos = page.evaluate(
+                "(id) => { const g = window.__vex3d.getState().loose.find(x => x.id === id);"
+                " return g ? [g.x, g.y] : null; }",
+                combo["cup"],
+            )
+            page.locator(".act-btn", has_text="拆分").click()
+            time.sleep(0.6)
+            split = page.evaluate(
+                """(arg) => {
+                  const st = window.__vex3d.getState();
+                  const gone = !st.loose.some(g => g.id === arg.id);
+                  // 拆出来的那几段：位置要错开（不然点哪都是压在上面的那个）
+                  const near = st.loose.filter(g => Math.hypot(g.x - arg.pos[0], g.y - arg.pos[1]) < 260);
+                  return {n: st.loose.length, gone, xs: near.map(g => Math.round(g.x))};
+                }""",
+                {"id": combo["cup"], "pos": split_pos},
+            )
+            check("拆分：一组 → 两个各自独立的组",
+                  split["n"] == n_before_split + 1 and split["gone"],
+                  f"{n_before_split} → {split['n']}（原组还在吗：{not split['gone']}）")
+            check("拆开的几段错开摆（拾取范围不重叠）",
+                  len(set(split["xs"])) >= 2, str(split["xs"]))
+
+        # ★ 侧躺的 pin 拖到 cup 上 = 被拾起来**插进 cup 里**（立起来）
+        # 先清空场地，摆一个 cup + 一根侧躺的 pin（旁边 350 mm）
+        page.locator(".topbar button", has_text="重置").click()
+        time.sleep(0.8)
+        lying_case = page.evaluate(
+            """() => {
+              const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+              const r = b.domElement.getBoundingClientRect();
+              const project = (x, y, z) => {
+                const v = new b.camera.position.constructor(x, z, -y);
+                v.project(b.camera);
+                return [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+              };
+              const s2 = window.__vex3d.getState();
+              const before = s2.loose.length;
+              s2.setLoose([
+                {id: 'cup-test', x: -600, y: 0,
+                 pieces: [{id: 'cup-piece', kind: 'cup', halves: ['gray', 'clear']}]},
+                {id: 'lying-test', x: -250, y: 0,
+                 pieces: [{id: 'lying-piece', kind: 'pin', halves: ['red', 'blue'],
+                           axis: [0, -0.966, 0.2584]}]}]);
+              return {cup: 'cup-test',
+                      lp: project(-250, 0, 40), cp: project(-600, 0, 40),
+                      before, after: window.__vex3d.getState().loose.length};
+            }"""
+        )
+        if lying_case:
+            page.mouse.move(lying_case["lp"][0], lying_case["lp"][1])
+            page.mouse.down()
+            page.mouse.move(lying_case["lp"][0] + 15,
+                            lying_case["lp"][1] + 6, steps=4)
+            time.sleep(0.25)
+            page.mouse.move(lying_case["cp"][0], lying_case["cp"][1], steps=12)
+            time.sleep(0.4)
+            page.mouse.up()
+            time.sleep(0.6)
+            ins = page.evaluate(
+                """(ids) => {
+                  const st = window.__vex3d.getState();
+                  const g = st.loose.find(x => x.id === ids.cup);
+                  return {n: st.loose.length,
+                          pieces: g ? g.pieces.length : 0,
+                          kinds: g ? g.pieces.map(p => p.kind) : [],
+                          lying: g ? g.pieces.filter(p => p.axis).length : 0};
+                }""",
+                lying_case,
+            )
+            check("侧躺的 pin 拖到 cup 上 → 被插进 cup 里（立起来，不再是躺着的那根）",
+                  ins["n"] == lying_case["after"] - 1 and ins["pieces"] == 2
+                  and ins["kinds"] == ["cup", "pin"] and ins["lying"] == 0, str(ins))
+        else:
+            check("侧躺的 pin 拖到 cup 上 → 被插进 cup 里", False, "找不到空地")
+
+        # 没选中得分物时，「翻转 / 拆分」都不该出现
+        page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              st.selectGoal(null); st.selectLoose(null); st.selectItem(null);
+            }"""
+        )
+        time.sleep(0.5)
+        check("没选中得分物时不显示「翻转 / 拆分」按钮",
+              page.locator(".act-btn").count() == 0)
+
+        # 选中一个 goal 上放的件 → 「翻转选中件」出现
+        page.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              window.__vex3d.setState({ stacks: { ...st.stacks, 'g-n4': [] } });
+              st.placeItem('g-n4', { id: 'flipme', kind: 'pin', halves: ['red', 'blue'] });
+              st.selectGoal('g-n4');
+              st.selectItem('flipme');
+            }"""
+        )
+        time.sleep(0.5)
+        check("选中得分物 → 出现「翻转选中件」",
+              page.locator(".act-btn", has_text="翻转选中件").count() == 1)
+        page.locator(".act-btn", has_text="翻转选中件").click()
+        time.sleep(0.4)
+        flipped = page.evaluate(
+            "() => window.__vex3d.getState().stacks['g-n4'][0].halves.join('/')"
+        )
+        check("「翻转选中件」把上下两半对调", flipped == "blue/red", flipped)
 
         # 重置：全清
         page.locator(".topbar button", has_text="重置").click()

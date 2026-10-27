@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { DEBUG } from '@/devTools'
+import { useApp } from '@/state/store'
 
 /**
  * 3D 场景 ↔ DOM 拖拽控制器之间的桥。
@@ -14,6 +15,8 @@ export const sceneBridge = {
   domElement: null as HTMLElement | null,
   /** 每个 Goal 的放置目标（不可见的圆柱） */
   dropTargets: [] as THREE.Object3D[],
+  /** 每个散件组的拾取体（不可见的圆柱）—— 判断「拖到另一个散件上」 */
+  looseTargets: [] as THREE.Object3D[],
   raycaster: new THREE.Raycaster(),
   pointer: new THREE.Vector2(),
   /** frameloop="demand" 时需要主动请求下一帧 */
@@ -26,18 +29,23 @@ export const sceneBridge = {
   controls: null as null | { target: THREE.Vector3; update: () => void },
 }
 
-export type ViewPreset = 'iso' | 'top' | 'west' | 'low' | 'setup'
+export type ViewPreset = 'iso' | 'top' | 'setup'
 
 /**
  * 切到预设视角。
  *
  * 命名约定：**按钮名 = 镜头朝着的方向**（不是镜头站在哪一边）。
- * 默认视角和「正西」都朝**西**看 —— 相机在东侧（蓝方），画面左边是南、右边是北。
- * 场地方向 ↔ 区域：东=蓝近、北=蓝远、南=红远、西=红近。
+ *
+ * ★ 默认视角朝**东**看 —— 相机站在**西侧**（红方近场那一头），红近就在画面前景，
+ *   画面左 = 北、右 = 南。也就是「以自己（红方）的近场为默认」。
+ *   俯视图保持**北在上**（标准地图朝向，不跟着 3D 转）。
+ *   场地方向 ↔ 区域：东=蓝近、北=蓝远、南=红远、西=红近。
  */
 export function applyView(preset: ViewPreset) {
   const { camera, controls, invalidate } = sceneBridge
   if (!camera) return
+  // ★ 视角锁定时，视角卡片（和「摆场」里的切视角）全部失效 —— 锁定就是不动。
+  if (useApp.getState().viewLocked) return
   switch (preset) {
     case 'top':
       camera.position.set(0, 5200, 0)
@@ -48,16 +56,9 @@ export function applyView(preset: ViewPreset) {
       camera.position.set(0, 6600, 0)
       camera.up.set(0, 0, -1)
       break
-    case 'west':
-      camera.position.set(2500, 700, 0)
-      camera.up.set(0, 1, 0)
-      break
-    case 'low':
-      camera.position.set(2400, 380, 0)
-      camera.up.set(0, 1, 0)
-      break
     default:
-      camera.position.set(4100, 3400, 0)
+      // 45°：相机在西侧（红近）朝东看
+      camera.position.set(-4100, 3400, 0)
       camera.up.set(0, 1, 0)
       break
   }
@@ -71,6 +72,7 @@ export function applyView(preset: ViewPreset) {
 
 export function resetBridge() {
   sceneBridge.dropTargets = []
+  sceneBridge.looseTargets = []
 }
 
 /**
@@ -131,4 +133,37 @@ export function pickOnPlane(
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeY)
   const out = new THREE.Vector3()
   return raycaster.ray.intersectPlane(plane, out) ? out : null
+}
+
+/**
+ * 屏幕坐标 → 命中哪个散件组（拖到一个散件上 = 跟它**组合**）。
+ *
+ * 跟 `pickDropTarget` 一样是手动射线（拾取体都是 `visible={false}` 的，
+ * R3F 自己的事件系统只认「带 handler 的对象」）。
+ */
+export function pickLooseTarget(
+  clientX: number,
+  clientY: number,
+  excludeGroupId?: string,
+): string | null {
+  const { camera, domElement, raycaster, pointer } = sceneBridge
+  if (!camera || !domElement) return null
+  const rect = domElement.getBoundingClientRect()
+  if (
+    clientX < rect.left ||
+    clientX > rect.right ||
+    clientY < rect.top ||
+    clientY > rect.bottom
+  ) {
+    return null
+  }
+  pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+  pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+  raycaster.setFromCamera(pointer, camera)
+  const hits = raycaster.intersectObjects(sceneBridge.looseTargets, false)
+  for (const h of hits) {
+    const gid = h.object.userData.groupId as string | undefined
+    if (gid && gid !== excludeGroupId) return gid
+  }
+  return null
 }

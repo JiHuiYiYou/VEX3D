@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useApp } from '@/state/store'
 import { scoreField } from '@/state/scoring'
-import { getFieldSpec, GOAL_BY_ID, PIN_COLOR_LABEL, goalName } from '@/data/fieldSpec'
-import type { HalfResult } from '@/state/scoring'
+import { getFieldSpec } from '@/data/fieldSpec'
 
 export function useScores() {
   const stacks = useApp((s) => s.stacks)
@@ -19,49 +18,14 @@ export function useScores() {
   }, [stacks, toggles, midfieldCounts])
 }
 
-/** 一个 pin 的两半（聚成一行显示） */
-interface PinRow {
-  itemId: string
-  lower: HalfResult
-  upper: HalfResult
-  red: number
-  blue: number
-  blocked: boolean
-}
-
+/**
+ * 实时计分 —— **只留两个大分数**。
+ *
+ * 规则说明、逐 goal / 逐 pin 的明细都删了（要看判定理由的话，
+ * 规则都在 `src/state/scoring.ts` 里）。
+ */
 export function ScoreBoard() {
   const scores = useScores()
-  const counts = useApp((s) => s.midfieldCounts)
-  const [hover, setHover] = useState<string | null>(null)
-
-  /** 按 goal → pin 分组（一个 pin 一行，两个色点 = 上下两半） */
-  const byGoal = useMemo(() => {
-    const map: Record<string, PinRow[]> = {}
-    for (const h of scores.halves) {
-      ;(map[h.goalId] ??= [])
-      const rows = map[h.goalId]
-      let row = rows.find((r) => r.itemId === h.itemId)
-      if (!row) {
-        row = {
-          itemId: h.itemId,
-          lower: h,
-          upper: h,
-          red: 0,
-          blue: 0,
-          blocked: false,
-        }
-        rows.push(row)
-      }
-      if (h.halfIndex === 0) row.lower = h
-      else row.upper = h
-      if (h.scored) {
-        if (h.alliance === 'red') row.red += h.points
-        else row.blue += h.points
-      }
-      if (h.covered && !h.scored) row.blocked = true
-    }
-    return map
-  }, [scores])
 
   return (
     <section className="panel panel-score">
@@ -77,98 +41,6 @@ export function ScoreBoard() {
           <div className="score-num">{scores.blue}</div>
           <div className="score-label">蓝方</div>
         </div>
-      </div>
-
-      <div className="score-note">
-        <div className="score-legend">
-          <span>
-            <b>5</b>联盟色 pin 半
-          </span>
-          <span>
-            <b>10</b>被拥有的黄半
-          </span>
-          <span>
-            <b>8</b>中场每台机器人
-          </span>
-        </div>
-        {(counts.red > 0 || counts.blue > 0) && (
-          <div className="score-sub">
-            中场机器人：红 {counts.red} 台 <b className="red-txt">+{scores.robotPoints.red}</b> ·
-            蓝 {counts.blue} 台 <b className="blue-txt">+{scores.robotPoints.blue}</b>
-          </div>
-        )}
-        {scores.blocked > 0 && (
-          <div className="score-sub warn">
-            <i className="warn-dot" aria-hidden="true">
-              !
-            </i>
-            {scores.blocked} 个 pin 半被挡住，不得分
-          </div>
-        )}
-      </div>
-
-      <div className="score-list">
-        {Object.entries(byGoal).map(([goalId, rows]) => {
-          const g = GOAL_BY_ID[goalId]
-          const red = rows.reduce((s, r) => s + r.red, 0)
-          const blue = rows.reduce((s, r) => s + r.blue, 0)
-          return (
-            <div key={goalId} className="score-goal">
-              <div className="score-goal-head">
-                <span title={g ? goalName(g) : goalId}>{g ? goalName(g) : goalId}</span>
-                <span>
-                  <b className="red-txt">{red}</b> / <b className="blue-txt">{blue}</b>
-                </span>
-              </div>
-              {rows.map((row) => {
-                const key = row.itemId
-                const reasons = [row.lower.reason, row.upper.reason]
-                return (
-                  <div
-                    key={key}
-                    className={`half-row ${row.blocked ? 'blocked' : ''}`}
-                    onMouseEnter={() => setHover(key)}
-                    onMouseLeave={() => setHover(null)}
-                    title={reasons.join('\n')}
-                  >
-                    <i className={`dot ${row.lower.color}`} />
-                    <i className={`dot ${row.upper.color}`} />
-                    <span className="half-name">
-                      {PIN_COLOR_LABEL[row.lower.color]} / {PIN_COLOR_LABEL[row.upper.color]}
-                    </span>
-                    <span className="half-pts">
-                      <b className="red-txt">{row.red}</b> / <b className="blue-txt">{row.blue}</b>
-                    </span>
-                    {hover === key && (
-                      <div className="reason">
-                        <div>下：{reasons[0]}</div>
-                        <div>上：{reasons[1]}</div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )
-        })}
-        {Object.keys(byGoal).length === 0 && (
-          <div className="score-empty">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 3.5 20 12l-8 8.5L4 12z"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinejoin="round"
-              />
-              <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.4" />
-            </svg>
-            <span>
-              还没有放置任何得分物。
-              <br />
-              点场上的 <b>goal</b> 选它，再从左边拖一个 pin 上去。
-            </span>
-          </div>
-        )}
       </div>
     </section>
   )

@@ -41,7 +41,7 @@ export const LOOK = {
   skyBottom: '#05070b',
 } as const
 
-/** 垫子贴图：程序生成的「印刷质感」（底色 + 中心渐变 + 大圆 + 角弧 + 颗粒） */
+/** 垫子贴图：程序生成的「印刷质感」（底色 + 中心渐变 + 颗粒） */
 export function makeMatTexture(): THREE.CanvasTexture {
   const S = 2048
   const c = document.createElement('canvas')
@@ -68,33 +68,8 @@ export function makeMatTexture(): THREE.CanvasTexture {
   g.fillStyle = cg
   g.fillRect(0, 0, S, S)
 
-  // 竞技场大圆（半径 1420 mm）+ 中圈
-  g.strokeStyle = 'rgba(34,42,54,0.30)'
-  g.lineWidth = 5
-  g.beginPath()
-  g.arc(S / 2, S / 2, S * 0.393, 0, Math.PI * 2)
-  g.stroke()
-  g.strokeStyle = 'rgba(34,42,54,0.16)'
-  g.lineWidth = 3
-  g.beginPath()
-  g.arc(S / 2, S / 2, S * 0.19, 0, Math.PI * 2)
-  g.stroke()
-
-  // 四角的印刷弧线
-  g.strokeStyle = 'rgba(34,42,54,0.22)'
-  g.lineWidth = 4
-  const m = S * 0.055
-  const r = S * 0.16
-  for (const [cx, cy, a0, a1] of [
-    [m, m, 0, Math.PI / 2],
-    [S - m, m, Math.PI / 2, Math.PI],
-    [m, S - m, -Math.PI / 2, 0],
-    [S - m, S - m, Math.PI, Math.PI * 1.5],
-  ] as const) {
-    g.beginPath()
-    g.arc(cx, cy, r, a0, a1)
-    g.stroke()
-  }
+  // ★ 真实场地的垫子上**没有**印刷圆环（大圆 / 中圈）和四角弧 ——
+  //   那些是当初手搓质感时加的，跟官方场地对不上，已经删掉。
 
   // 颗粒（256×256 的噪声贴一块，平铺）—— 垫子不是纯色的塑料
   const N = 256

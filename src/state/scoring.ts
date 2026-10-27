@@ -354,3 +354,31 @@ export function checkPlacement(kind: 'pin' | 'cup', stack: StackItem[]): Placeme
     ? { ok: true, reason: '' }
     : { ok: false, reason: 'cup 不能叠在 cup 上：cup 只能放在 pin 上' }
 }
+
+/**
+ * 一摞件是否合法：**pin / cup 必须交替**。
+ *
+ * 场上的一组散件可以以 pin 或 cup 开头 —— 「cup 里插着 pin」就是以 cup 开头的
+ * （pin 的尖端探进 cup 的腰里）。
+ */
+export function checkStackKinds(kinds: ('pin' | 'cup')[]): PlacementCheck {
+  for (let i = 1; i < kinds.length; i++) {
+    if (kinds[i] === kinds[i - 1]) {
+      return kinds[i] === 'pin'
+        ? { ok: false, reason: 'pin 不能叠在 pin 上：pin 只能放在 cup 上' }
+        : { ok: false, reason: 'cup 不能叠在 cup 上：cup 只能放在 pin 上' }
+    }
+  }
+  return { ok: true, reason: '' }
+}
+
+/**
+ * 摞到 **goal** 上是否合法：整摞必须 pin / cup 交替，**且第一件是 pin**
+ *（goal 上只能先放 pin —— cup 不能直接坐在 goal 的孔上）。
+ */
+export function checkGoalStack(kinds: ('pin' | 'cup')[]): PlacementCheck {
+  if (kinds.length && kinds[0] !== 'pin') {
+    return { ok: false, reason: 'cup 不能直接放在 goal 上：goal 上只能先放 pin' }
+  }
+  return checkStackKinds(kinds)
+}

@@ -276,16 +276,24 @@ ACTION_JS = r"""
 async (kind) => {
   const st = window.__vex3d.getState();
   let target = null;
+  let group = null;
   if (kind === 'item') {
     if (!st.loose.length) return { error: 'no-loose-items' };
-    const id = st.loose[0].id;
-    target = st.selectedItemId === id ? null : id;   // 来回切，制造真实变化
+    // 散件现在按**组**存：选中的是组里的那一段
+    group = st.loose[0];
+    const pid = group.pieces ? group.pieces[0].id : group.id;
+    target = st.selectedItemId === pid ? null : pid;   // 来回切，制造真实变化
   } else {
     target = st.selectedGoalId === 'g-n1' ? null : 'g-n1';
   }
   const t0 = performance.now();
-  if (kind === 'item') window.__vex3d.getState().selectItem(target);
-  else window.__vex3d.getState().selectGoal(target);
+  if (kind === 'item') {
+    const s2 = window.__vex3d.getState();
+    if (group && group.pieces) s2.selectLoose(target ? group.id : null);
+    s2.selectItem(target);
+  } else {
+    window.__vex3d.getState().selectGoal(target);
+  }
   const tAction = performance.now();
 
   const tCommit = await new Promise((resolve) => {

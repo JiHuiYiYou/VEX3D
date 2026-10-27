@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { FieldScene } from './scene/FieldScene'
 import { checkAssets } from './scene/assets'
-import { LeftPalette } from './ui/LeftPalette'
+import { SidePanel } from './ui/SidePanel'
 import { ScoreBoard } from './ui/ScoreBoard'
 import { TrashZone } from './ui/TrashZone'
 import { PlaceHint } from './ui/PlaceHint'
 import { TopBar } from './ui/TopBar'
-import { RulesDrawer } from './ui/RulesDrawer'
 import { useApp } from './state/store'
 import { useDragController } from './state/useDragController'
 import { loadFieldSpec } from './data/fieldSpec'
@@ -53,18 +52,23 @@ export default function App() {
       const st = useApp.getState()
       if (e.key === 'Escape') {
         st.selectGoal(null)
-        st.selectToggle(null)
+        st.selectLoose(null)
         st.selectItem(null)
         st.setPending(null) // 手里的件放下了
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (st.selectedGoalId && st.selectedItemId) {
+        if (st.selectedLooseId) {
+          st.removeLoose(st.selectedLooseId)
+          e.preventDefault()
+        } else if (st.selectedGoalId && st.selectedItemId) {
           st.removeItem(st.selectedGoalId, st.selectedItemId)
           e.preventDefault()
         }
       }
       if (e.key === 'f' || e.key === 'F') {
-        if (st.selectedGoalId && st.selectedItemId) {
+        if (st.selectedLooseId && st.selectedItemId) {
+          st.flipLoose(st.selectedLooseId, st.selectedItemId)
+        } else if (st.selectedGoalId && st.selectedItemId) {
           st.flipItem(st.selectedGoalId, st.selectedItemId)
         }
       }
@@ -116,15 +120,14 @@ tools/.venv/Scripts/python.exe tools/extract_field.py --with-wall-trim`}
     <div className="app">
       <TopBar />
       <div className="body">
-        <LeftPalette />
+        <div className="left-col">
+          <ScoreBoard />
+          <SidePanel />
+        </div>
         <div className="stage">
           <FieldScene onError={fail} />
           <TrashZone />
           <PlaceHint />
-        </div>
-        <div className="right-col">
-          <ScoreBoard />
-          <RulesDrawer />
         </div>
       </div>
     </div>

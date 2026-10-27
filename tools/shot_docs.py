@@ -101,7 +101,7 @@ def shot(pg, name, scale=1, size=(1280, 760), clip=None):
 
 
 def main():
-    url = "http://127.0.0.1:5173/?quality=medium"
+    url = "http://localhost:5173/?quality=medium"
     with sync_playwright() as p:
         b = p.chromium.launch(headless=True, args=ARGS)
         pg = b.new_page(viewport={"width": 1280, "height": 760})
@@ -117,7 +117,7 @@ def main():
         # 首图用摆场后的状态：场上摆着红/蓝/黄的得分物，一眼能看出这工具干嘛的
         pg.click("text=摆场")
         time.sleep(3)
-        camera(pg, (4100, 3400, 0))   # 摆场会把镜头切到俯视，这里切回 45°
+        camera(pg, (-4100, 3400, 0))   # 摆场会把镜头切到俯视，这里切回默认的 45°（朝东看）
         time.sleep(3)
         shot(pg, "overview.png")
         pg.click("text=重置")
@@ -128,8 +128,8 @@ def main():
         time.sleep(3)
         shot(pg, "topdown.png")
 
-        # ── palette：点中一个 goal，左侧出调色板 ─────────────
-        camera(pg, (4100, 3400, 0))
+        # ── palette：点中一个 goal，右栏出调色板 ─────────────
+        camera(pg, (-4100, 3400, 0))
         time.sleep(2)
         pos = goal_screen_pos(pg, "g-n3")
         if pos:
@@ -165,29 +165,55 @@ def main():
         }
         shot(pg, "nesting.png", clip=clip)
 
-        # ── dragging：拖着还没靠边（四周淡红光、没有垃圾桶）──
-        camera(pg, (4100, 3400, 0))
+        # ── dragging / trash：拖一个散件 → 右上角出现删除方块 ──
+        pg.click("text=摆场")
+        time.sleep(4)
+        camera(pg, (-4100, 3400, 0))
         time.sleep(2)
-        pg.evaluate("() => window.__vex3d.getState().selectGoal(null)")
-        it = pg.locator(".palette-item").first
-        ib = it.bounding_box()
-        sx, sy = ib["x"] + ib["width"] / 2, ib["y"] + ib["height"] / 2
-        pg.mouse.move(sx, sy)
-        pg.mouse.down()
-        for i in range(1, 9):
-            pg.mouse.move(sx + (760 - sx) * i / 8, sy + (430 - sy) * i / 8)
-            time.sleep(0.03)
-        time.sleep(0.6)
-        shot(pg, "dragging.png")
+        loose_pt = pg.evaluate(
+            """() => {
+              const st = window.__vex3d.getState();
+              const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
+              const r = b.domElement.getBoundingClientRect();
+              for (const g of st.loose) {
+                if (g.pieces.length !== 1 || g.pieces[0].axis) continue;
+                const v = new b.camera.position.constructor(g.x, 40, -g.y);
+                v.project(b.camera);
+                const pt = [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+                if (pt[0] > r.left+40 && pt[0] < r.right-40
+                    && pt[1] > r.top+40 && pt[1] < r.bottom-40) return pt;
+              }
+              return null;
+            }"""
+        )
+        if loose_pt:
+            pg.mouse.move(loose_pt[0], loose_pt[1])
+            pg.mouse.down()
+            for i in range(1, 9):
+                pg.mouse.move(loose_pt[0] + (620 - loose_pt[0]) * i / 8,
+                              loose_pt[1] + (420 - loose_pt[1]) * i / 8)
+                time.sleep(0.03)
+            time.sleep(0.8)
+            shot(pg, "dragging.png")
 
-        # ── trash：拖到画布边缘 → 垃圾桶 ────────────────────
-        for i in range(1, 11):
-            pg.mouse.move(760 + (1240 - 760) * i / 10, 430)
-            time.sleep(0.03)
-        time.sleep(0.8)
-        shot(pg, "trash.png")
-        pg.mouse.up()
-        time.sleep(0.5)
+            # 拖进右上角那个红色方块
+            slot = pg.evaluate(
+                """() => {
+                  const el = document.querySelector('.trash-slot');
+                  if (!el) return null;
+                  const r = el.getBoundingClientRect();
+                  return [(r.left + r.right) / 2, (r.top + r.bottom) / 2];
+                }"""
+            )
+            if slot:
+                for i in range(1, 11):
+                    pg.mouse.move(620 + (slot[0] - 620) * i / 10,
+                                  420 + (slot[1] - 420) * i / 10)
+                    time.sleep(0.03)
+                time.sleep(0.8)
+                shot(pg, "trash.png")
+            pg.mouse.up()
+            time.sleep(0.5)
 
         b.close()
 
