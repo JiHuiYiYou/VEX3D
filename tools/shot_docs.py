@@ -117,7 +117,7 @@ def main():
         # 首图用摆场后的状态：场上摆着红/蓝/黄的得分物，一眼能看出这工具干嘛的
         pg.click("text=摆场")
         time.sleep(3)
-        camera(pg, (-4100, 3400, 0))   # 摆场会把镜头切到俯视，这里切回默认的 45°（朝东看）
+        camera(pg, (-4100, 3400, 0))   # 默认的 45°（朝东看）——摆场后就是这个视角
         time.sleep(3)
         shot(pg, "overview.png")
         pg.click("text=重置")

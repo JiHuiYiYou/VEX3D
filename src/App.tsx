@@ -120,14 +120,15 @@ tools/.venv/Scripts/python.exe tools/extract_field.py --with-wall-trim`}
     <div className="app">
       <TopBar />
       <div className="body">
-        <div className="left-col">
-          <ScoreBoard />
-          <SidePanel />
-        </div>
+        {/* 画布占左边，面板在右边（`.side-col`）*/}
         <div className="stage">
           <FieldScene onError={fail} />
           <TrashZone />
           <PlaceHint />
+        </div>
+        <div className="side-col">
+          <ScoreBoard />
+          <SidePanel />
         </div>
       </div>
     </div>

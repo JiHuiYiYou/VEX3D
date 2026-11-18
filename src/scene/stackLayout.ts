@@ -36,7 +36,7 @@ export function halfHeight(item: StackItem) {
 }
 
 /** 一个完整 Pin / Cup 的高度（CAD 实测 165 / 164.5） */
-export function itemHeight(item: StackItem) {
+export function itemHeight(item: { kind: 'pin' | 'cup' }) {
   return item.kind === 'pin' ? PIN_HEIGHT : CUP_HEIGHT
 }
 

@@ -132,7 +132,7 @@ export function TopBar() {
           title="按官方开局示意图摆好全场：goal 上的得分物、场地散件、红/蓝装填区"
           onClick={() => {
             applySetup({ stacks: INITIAL_GOAL_STACKS, loose: INITIAL_LOOSE })
-            applyView('setup')
+            applyView('iso') // 摆完切回默认的 45° 视角
           }}
         >
           摆场

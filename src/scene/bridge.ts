@@ -29,7 +29,7 @@ export const sceneBridge = {
   controls: null as null | { target: THREE.Vector3; update: () => void },
 }
 
-export type ViewPreset = 'iso' | 'top' | 'setup'
+export type ViewPreset = 'iso' | 'top'
 
 /**
  * 切到预设视角。
@@ -46,15 +46,13 @@ export function applyView(preset: ViewPreset) {
   if (!camera) return
   // ★ 视角锁定时，视角卡片（和「摆场」里的切视角）全部失效 —— 锁定就是不动。
   if (useApp.getState().viewLocked) return
+  // ★ 先把 OrbitControls 的**残余阻尼**甩掉：用户刚转过相机的话，
+  //   update() 会把相机从预设视角上继续往外推 → 按「45°」不落在 45° 上 ✗
+  if (controls) for (let i = 0; i < 30; i++) controls.update()
   switch (preset) {
     case 'top':
       camera.position.set(0, 5200, 0)
       camera.up.set(0, 0, -1) // 画面上方 = 场地北
-      break
-    case 'setup':
-      // 「摆场」用的俯视：拉远到能连红/蓝装填区（±2445 mm）一起看进来
-      camera.position.set(0, 6600, 0)
-      camera.up.set(0, 0, -1)
       break
     default:
       // 45°：相机在西侧（红近）朝东看
@@ -79,7 +77,7 @@ export function resetBridge() {
  * 3D 画布（= 舞台）的屏幕矩形。画布还没建好时退回整个窗口。
  *
  * 「靠近边缘」的判定和垃圾桶的位置都以这个矩形为基准，
- * 而不是整个窗口 —— 窗口左右各有一块面板，用窗口当基准的话左边缘整块被面板盖住。
+ * 而不是整个窗口 —— 窗口右边有一块面板，用窗口当基准的话右边缘整块被面板盖住。
  */
 export function stageRect(): DOMRect {
   const el = sceneBridge.domElement

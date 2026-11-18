@@ -4,7 +4,7 @@ import { useApp } from '@/state/store'
 import type { LooseGroup, LoosePiece } from '@/state/store'
 import { toThree } from '@/data/fieldSpec'
 import type { StackItem } from '@/state/scoring'
-import { axisEuler, layoutLooseGroup } from './stackLayout'
+import { axisEuler, itemHeight, layoutLooseGroup } from './stackLayout'
 import { HalfMesh } from './Goals'
 import { pickMaterial } from './materials'
 import { sceneBridge } from './bridge'
@@ -74,22 +74,35 @@ const MemoHalfMesh = memo(HalfMesh)
 /** 站着的件不转 → 用一个常量数组，props 引用稳定 */
 const ZERO_ROT: [number, number, number] = [0, 0, 0]
 
-/** 拾取圆柱的尺寸（不可见，只用来判断「指针在不在这个散件上」） */
+/**
+ * 拾取圆柱的尺寸（不可见，只用来判断「指针在不在这个散件上」）。
+ *
+ * ★ 高度要**贴着可见的件**，别伸到天上：
+ *   圆柱是看不见的，多出来的那截会在**斜视角**下挡住后面那个明明看得见的件 ——
+ *   射线先打中前面那个件的「空气部分」，悬停 / 组合就指错了人 ✗
+ *   （实测：320 mm 的圆柱在 45° 下会抢走身后那个件 1/3 高度的拾取）
+ *   → 站着的件按**这一摞的实际高度**算（单件 165 / 杯里插着针 ≈ 250），
+ *     侧躺的件贴地（≈ 60）就够了。
+ */
 const PICK_RADIUS = 62
-const PICK_HEIGHT = 320
+/** 侧躺的件：贴地的一小截 */
+const PICK_HEIGHT_LYING = 60
 
 /**
- * 拾取圆柱的**几何全局一份**（摆场后有 98 个散件组）。
+ * 拾取圆柱的**几何全局几份**（摆场后有 98 个散件组）。
  *
  * 作为 prop 传下去 → R3F 不会 dispose 它 ✓（只有 JSX 子节点才会被回收）。
  * 每个组自己 `<cylinderGeometry>` 的话就是 98 份一模一样的 buffer。
+ * 高度只有几种（单件 / 套娃 / 侧躺）→ 按高度缓存，几份就够。
  */
-let pickGeo: THREE.CylinderGeometry | null = null
-function pickGeometry(): THREE.CylinderGeometry {
-  if (!pickGeo) {
-    pickGeo = new THREE.CylinderGeometry(PICK_RADIUS, PICK_RADIUS, PICK_HEIGHT, 8)
+const pickGeoCache = new Map<number, THREE.CylinderGeometry>()
+function pickGeometry(height: number): THREE.CylinderGeometry {
+  let g = pickGeoCache.get(height)
+  if (!g) {
+    g = new THREE.CylinderGeometry(PICK_RADIUS, PICK_RADIUS, height, 8)
+    pickGeoCache.set(height, g)
   }
-  return pickGeo
+  return g
 }
 
 /**
@@ -157,6 +170,10 @@ const LooseGroupView = memo(function LooseGroupView({ id }: { id: string }) {
   const rot: [number, number, number] = lying
     ? axisEuler([bottom.axis![0], bottom.axis![2], -bottom.axis![1]])
     : ZERO_ROT
+  // 拾取圆柱的高度 = 这一组**看得见**的高度（别伸到天上，见 PICK_RADIUS 那段注释）
+  const pickHeight = lying
+    ? PICK_HEIGHT_LYING
+    : Math.ceil(Math.max(...laid.map((s) => s.baseY + itemHeight(s.piece)))) + 6
 
   return (
     <>
@@ -178,8 +195,8 @@ const LooseGroupView = memo(function LooseGroupView({ id }: { id: string }) {
           （three.js 的 Raycaster 不看 visible）✓ */}
       <mesh
         ref={registerPick}
-        position={[x, PICK_HEIGHT / 2, z]}
-        geometry={pickGeometry()}
+        position={[x, pickHeight / 2, z]}
+        geometry={pickGeometry(pickHeight)}
         material={pickMaterial()}
         visible={false}
       />

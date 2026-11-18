@@ -224,7 +224,7 @@ body {
   transform: translateY(1px);
 }
 
-/* ── 主体两栏（左栏 + 画布） ─────────────────────────── */
+/* ── 主体两栏（画布 + 右栏） ─────────────────────────── */
 .body {
   display: flex;
   flex: 1;
@@ -254,21 +254,22 @@ body {
   );
   pointer-events: none;
 }
-.left-col {
+/* 侧栏在**右边**（画布在左） */
+.side-col {
   width: 344px;
   flex: 0 0 344px;
-  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   background: var(--bg-2);
 }
-.left-col .panel {
+.side-col .panel {
   border-bottom: 1px solid var(--line);
   background: none;
   overflow: visible;
 }
-.left-col .panel::before {
+.side-col .panel::before {
   display: none;
 }
 .stage {
@@ -407,7 +408,7 @@ body {
   color: var(--muted);
 }
 
-/* ── 左侧调色板 ─────────────────────────────────────── */
+/* ── 右侧调色板 ─────────────────────────────────────── */
 .selected-goal {
   font-size: 13.5px;
   margin-bottom: 12px;

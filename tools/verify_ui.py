@@ -37,6 +37,30 @@ def check(name, ok, detail=""):
     return ok
 
 
+def set_camera(page, pos, up=(0, 1, 0)):
+    """把相机摆到指定位置。
+
+    ★ 要**连 OrbitControls 一起改**：只改 camera.position 的话，controls 还记着
+      旧的球坐标 + 残余阻尼 → 之后每帧相机都慢慢挪回去 → 脚本里算好的屏幕坐标
+      就过期了（斜视角下挪一点，射线就完全打偏 ✗）。
+    """
+    page.evaluate(
+        """([pos, up]) => {
+          const b = window.__bridge;
+          if (!b || !b.camera) return false;
+          if (b.controls) for (let i = 0; i < 30; i++) b.controls.update();
+          b.camera.position.set(...pos);
+          b.camera.up.set(...up);
+          b.camera.lookAt(0, 0, 0);
+          b.camera.updateProjectionMatrix();
+          if (b.controls) { b.controls.target.set(0, 0, 0); b.controls.update(); }
+          b.invalidate && b.invalidate();
+          return true;
+        }""",
+        [list(pos), list(up)],
+    )
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://127.0.0.1:5173/?quality=low")
@@ -79,7 +103,15 @@ def main():
         check("计分板存在", page.locator(".panel-score").count() == 1)
         # 右栏只有三块：实时计分 / 得分物 / 中场机器人数量
         check("右栏是三块（计分 + 调色板 + 中场机器人数）",
-              page.locator(".left-col .panel").count() == 3)
+              page.locator(".side-col .panel").count() == 3)
+        # 侧栏在**右边**（画布在左）
+        side_box = page.locator(".side-col").bounding_box()
+        canvas_box = page.locator("canvas").bounding_box()
+        check("侧栏在画布右边",
+              side_box is not None and canvas_box is not None
+              and canvas_box["x"] + canvas_box["width"] <= side_box["x"] + 2,
+              f"画布右边到 {round(canvas_box['x'] + canvas_box['width']) if canvas_box else '?'}，"
+              f"侧栏左边 {round(side_box['x']) if side_box else '?'}")
         check("调色板有 6 项（4 pin + 正反 2 个 cup）",
               page.locator(".palette-item").count() == 6)
         check("中场机器人数量常驻", page.locator(".panel-midfield").count() == 1)
@@ -104,30 +136,14 @@ def main():
               cam_pos[0] < -3000 and abs(cam_pos[1]) > 1000, str([round(v) for v in cam_pos]))
 
         # ── 2b. 俯视图（用来和真实场地照片对表）─────────────
-        page.evaluate(
-            """() => {
-              const b = window.__bridge;
-              if (!b || !b.camera) return false;
-              b.camera.position.set(0, 5200, 0);
-              b.camera.up.set(0, 0, -1);   // three 的 −Z = 场地北向 → 画面上方是北
-              b.camera.lookAt(0, 0, 0);
-              b.camera.updateProjectionMatrix();
-              b.invalidate && b.invalidate();
-              return true;
-            }"""
-        )
+        # ★ 直接改 camera.position 会把 OrbitControls 落在后面：它还记着旧的球坐标
+        #   + 残余阻尼 → 之后每帧相机都慢慢挪回去 → 脚本里算好的屏幕坐标就过期了
+        #   （斜视角下挪一点，射线就完全打偏 ✗）→ 所以改相机要连 controls 一起改
+        set_camera(page, (0, 5200, 0), (0, 0, -1))  # three 的 −Z = 场地北向 → 上方是北
         time.sleep(1.0)
         page.screenshot(timeout=300000, path=os.path.join(SHOTS, "01b-topdown.png"))
         # 视角复位（回默认的朝东视角）
-        page.evaluate(
-            """() => {
-              const b = window.__bridge;
-              b.camera.up.set(0, 1, 0);
-              b.camera.position.set(-4100, 3400, 0);
-              b.camera.lookAt(0, 0, 0);
-              b.invalidate && b.invalidate();
-            }"""
-        )
+        set_camera(page, (-4100, 3400, 0))
         time.sleep(0.4)
 
         # ── 2c. 点场上的 Toggle → 直接翻一次颜色 ──────────────
@@ -733,6 +749,10 @@ def main():
         # ── 8d. 摆场预设：还原官方开局 ─────────────────────────
         page.locator(".topbar button", has_text="摆场").click()
         time.sleep(1.5)
+        cam_setup = page.evaluate("() => window.__bridge.camera.position.toArray()")
+        check("摆场后切到 45° 视角（相机在西侧 = 红方近场那头，朝东看）",
+              cam_setup[0] < -3000 and cam_setup[1] > 1000,
+              str([round(v) for v in cam_setup]))
         setup = page.evaluate("""() => {
           const st = window.__vex3d.getState();
           const stacks = {};
@@ -1020,15 +1040,29 @@ def main():
                   and ok["kinds"] == ["cup", "pin"], str(ok))
 
             # ★ 真·拖拽手势：把一个散件**拖到**另一个散件上 → 合成一组
-            gesture = page.evaluate(
+            #
+            # ★ 瞄准点用**拾取圆柱的圆心**（就是命中判定用的那个看不见的圆柱），
+            #   不要用「件底在地面上的投影」—— 斜视角下那个投影会偏到件的**后面**去，
+            #   指过去打在垫子上，根本碰不到那个件。
+            # ★ 相机先摆稳（见 set_camera）：不然相机在拖的过程中慢慢挪，
+            #   刚算好的屏幕坐标就过期了 → 射线打偏 ✗
+            set_camera(page, (-4100, 3400, 0))
+            cands = page.evaluate(
                 """() => {
                   const st = window.__vex3d.getState();
                   const b = window.__bridge; const s = b.scene; s.updateMatrixWorld(true);
                   const r = b.domElement.getBoundingClientRect();
-                  const project = (x, y, z) => {
-                    const v = new b.camera.position.constructor(x, z, -y);
-                    v.project(b.camera);
-                    return [r.left + (v.x+1)/2*r.width, r.top + (1-v.y)/2*r.height];
+                  const projectV = (v) => {
+                    const p = v.clone().project(b.camera);
+                    return [r.left + (p.x+1)/2*r.width, r.top + (1-p.y)/2*r.height];
+                  };
+                  // 每个散件组的拾取圆柱（不可见，但射线就是打它）
+                  const pickOf = (gid) => {
+                    const m = b.looseTargets.find(t => t.userData.groupId === gid);
+                    if (!m) return null;
+                    const v = new b.camera.position.constructor();
+                    m.getWorldPosition(v);
+                    return v;
                   };
                   const inCanvas = (pt) => pt[0] > r.left+40 && pt[0] < r.right-40
                                         && pt[1] > r.top+40 && pt[1] < r.bottom-40;
@@ -1038,19 +1072,45 @@ def main():
                                        && g.pieces[0].kind === 'cup' && !g.pieces[0].axis);
                   const pins = st.loose.filter(g => g.pieces.length === 1
                                        && g.pieces[0].kind === 'pin' && !g.pieces[0].axis);
+                  const out = [];
                   for (const c of cups) {
                     if (nearGoal(c.x, c.y)) continue;
                     for (const p of pins) {
                       if (nearGoal(p.x, p.y)) continue;
-                      const cp = project(c.x, c.y, 40), pp = project(p.x, p.y, 40);
+                      const cw = pickOf(c.id), pw = pickOf(p.id);
+                      if (!cw || !pw) continue;
+                      const cp = projectV(cw), pp = projectV(pw);
                       if (!inCanvas(cp) || !inCanvas(pp)) continue;
                       if (Math.hypot(cp[0]-pp[0], cp[1]-pp[1]) < 70) continue;
-                      return {cup: c.id, pin: p.id, n: st.loose.length, cp, pp};
+                      out.push({cup: c.id, pin: p.id, n: st.loose.length, cp, pp});
+                      if (out.length >= 12) return out;
                     }
                   }
-                  return null;
+                  return out;
                 }"""
             )
+
+            # ★ 斜视角下**有些件是点不到的**：装填区里的件被围栏挡着 → 射线先打在
+            #   围栏/toggle 上，压根碰不到那个件（这是对的，围栏就在那儿）。
+            #   所以先用「真的点一下」筛掉点不到的候选，挑一对**屏幕上确实能点到**的。
+            def picks_group(page, pt):
+                # 先把选中清空：点空了的话 selectedLooseId 会留着上一个的值，
+                # 那样就分不清「点到了这个件」还是「压根没点到」了
+                page.evaluate("() => window.__vex3d.getState().selectLoose(null)")
+                page.mouse.click(pt[0], pt[1])
+                time.sleep(0.2)
+                return page.evaluate(
+                    "() => window.__vex3d.getState().selectedLooseId"
+                )
+
+            gesture = None
+            for c in cands:
+                if picks_group(page, c["pp"]) != c["pin"]:
+                    continue
+                if picks_group(page, c["cp"]) != c["cup"]:
+                    continue
+                gesture = c
+                break
             if gesture:
                 page.mouse.move(gesture["pp"][0], gesture["pp"][1])
                 page.mouse.down()
